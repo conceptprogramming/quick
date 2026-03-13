@@ -509,24 +509,29 @@ ob_start();
         text-align: left;
         padding: 20px 22px;
         border-radius: 20px;
-        border: 1px solid #dbe3f0;
-        background: linear-gradient(180deg, #ffffff 0%, #f8fafc 100%);
+        border: 1px solid #d7deea;
+        background: #ffffff;
         color: #0f172a;
-        transition: transform .2s ease, border-color .2s ease, box-shadow .2s ease, background .2s ease;
+        transition: transform .2s ease, border-color .2s ease, box-shadow .2s ease, background .2s ease, color .2s ease;
         font-size: 1rem;
         line-height: 1.55;
+        display: flex;
+        align-items: flex-start;
+        gap: 14px;
+        position: relative;
     }
 
     .qcp-option-btn:hover:not(:disabled) {
         transform: translateY(-1px);
-        border-color: #818cf8;
-        box-shadow: 0 18px 36px rgba(99, 102, 241, .12);
+        border-color: #94a3ff;
+        background: #f8faff;
+        box-shadow: 0 14px 28px rgba(99, 102, 241, .10);
     }
 
     .qcp-option-btn.selected {
         border-color: #4f46e5;
-        background: rgba(99, 102, 241, .07);
-        box-shadow: 0 18px 36px rgba(99, 102, 241, .12);
+        background: linear-gradient(180deg, #eef2ff 0%, #f8faff 100%);
+        box-shadow: 0 16px 32px rgba(79, 70, 229, .16);
     }
 
     .qcp-option-btn.correct {
@@ -541,15 +546,57 @@ ob_start();
 
     .qcp-option-label {
         display: inline-flex;
-        width: 34px;
-        height: 34px;
+        width: 38px;
+        height: 38px;
+        min-width: 38px;
         align-items: center;
         justify-content: center;
         border-radius: 50%;
-        background: rgba(99, 102, 241, .1);
+        background: #eef2ff;
         color: #4338ca;
         font-weight: 800;
-        margin-right: 12px;
+        border: 1px solid #c7d2fe;
+    }
+
+    .qcp-option-copy {
+        flex: 1;
+        padding-right: 34px;
+    }
+
+    .qcp-option-check {
+        position: absolute;
+        top: 18px;
+        right: 18px;
+        width: 24px;
+        height: 24px;
+        border-radius: 50%;
+        border: 2px solid #cbd5e1;
+        background: #fff;
+        transition: all .2s ease;
+    }
+
+    .qcp-option-check::after {
+        content: "";
+        position: absolute;
+        inset: 4px;
+        border-radius: 50%;
+        background: transparent;
+        transition: background .2s ease;
+    }
+
+    .qcp-option-btn.selected .qcp-option-label {
+        background: #4f46e5;
+        color: #fff;
+        border-color: #4f46e5;
+    }
+
+    .qcp-option-btn.selected .qcp-option-check {
+        border-color: #4f46e5;
+        background: #eef2ff;
+    }
+
+    .qcp-option-btn.selected .qcp-option-check::after {
+        background: #4f46e5;
     }
 
     .qcp-result-hero {
@@ -752,7 +799,10 @@ ob_start();
                 btn.type = 'button';
                 btn.className = 'qcp-option-btn';
                 btn.dataset.key = key;
-                btn.innerHTML = '<span class="qcp-option-label">' + escapeHtml(key) + '</span><span>' + escapeHtml(String(value)) + '</span>';
+                btn.innerHTML =
+                    '<span class="qcp-option-label">' + escapeHtml(key) + '</span>' +
+                    '<span class="qcp-option-copy">' + escapeHtml(String(value)) + '</span>' +
+                    '<span class="qcp-option-check" aria-hidden="true"></span>';
                 btn.addEventListener('click', function () {
                     selectAnswer(key);
                 });
@@ -767,7 +817,10 @@ ob_start();
                 btn.type = 'button';
                 btn.className = 'qcp-option-btn';
                 btn.dataset.key = option.key ? 'true' : 'false';
-                btn.innerHTML = '<i class="bi ' + option.icon + ' me-2"></i><span>' + option.label + '</span>';
+                btn.innerHTML =
+                    '<span class="qcp-option-label"><i class="bi ' + option.icon + '"></i></span>' +
+                    '<span class="qcp-option-copy">' + option.label + '</span>' +
+                    '<span class="qcp-option-check" aria-hidden="true"></span>';
                 btn.addEventListener('click', function () {
                     selectAnswer(option.key);
                 });
