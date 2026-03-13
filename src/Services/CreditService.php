@@ -108,6 +108,7 @@ class CreditService
 
         $st = $db->prepare("
             {$select}
+            FROM usage_counters
             WHERE user_id = :uid AND month = :month
             LIMIT 1
         ");
