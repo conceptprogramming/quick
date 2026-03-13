@@ -51,6 +51,9 @@
 </head>
 
 <body>
+    <?php if (isset($creditBalance)): ?>
+        <div id="qcp-credit-data" data-credits="<?= (int) $creditBalance ?>" style="display:none"></div>
+    <?php endif; ?>
     <!-- Flash Message Data (from PHP session) -->
     <?php
     $flash = $_SESSION['flash'] ?? null;
@@ -69,6 +72,57 @@
 
     <!-- Custom JS -->
     <script src="<?= APP_URL ?>/public/js/app.js"></script>
+    <script>
+        (function () {
+            const dataEl = document.getElementById('qcp-credit-data');
+            const storageKey = 'qcp_credit_balance';
+
+            function formatCredits(value) {
+                return Math.max(0, Number(value || 0)).toLocaleString();
+            }
+
+            function renderCredits(value) {
+                document.querySelectorAll('.js-credit-balance').forEach(function (el) {
+                    el.textContent = formatCredits(value);
+                });
+            }
+
+            function readStoredCredits() {
+                const raw = window.localStorage.getItem(storageKey);
+                return raw === null ? null : Number(raw);
+            }
+
+            function writeStoredCredits(value) {
+                window.localStorage.setItem(storageKey, String(Math.max(0, Number(value || 0))));
+                renderCredits(value);
+            }
+
+            const serverCredits = dataEl ? Number(dataEl.dataset.credits || 0) : null;
+            const storedCredits = readStoredCredits();
+            const initialCredits = serverCredits !== null ? serverCredits : (storedCredits ?? 0);
+
+            if (serverCredits !== null) {
+                writeStoredCredits(serverCredits);
+            } else {
+                renderCredits(initialCredits);
+            }
+
+            window.qcpCredits = {
+                get: function () {
+                    return readStoredCredits() ?? initialCredits;
+                },
+                set: function (value) {
+                    writeStoredCredits(value);
+                },
+                consume: function (amount) {
+                    writeStoredCredits((readStoredCredits() ?? initialCredits) - Number(amount || 0));
+                },
+                add: function (amount) {
+                    writeStoredCredits((readStoredCredits() ?? initialCredits) + Number(amount || 0));
+                },
+            };
+        })();
+    </script>
 
     <?= $extraScripts ?? '' ?>
 </body>

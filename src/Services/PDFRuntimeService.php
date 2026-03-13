@@ -49,10 +49,24 @@ class PDFRuntimeService
         }
 
         $destPath = $this->tmpPdfDir . "/pdf_{$sessionId}.pdf";
-        if (!@move_uploaded_file($file['tmp_name'], $destPath)) {
-            throw new \RuntimeException('Failed to store uploaded PDF.');
+        $tmpPath = $file['tmp_name'] ?? '';
+        if ($tmpPath === '' || !is_readable($tmpPath)) {
+            throw new \RuntimeException('Uploaded PDF is not readable.');
         }
-        return $destPath;
+
+        if (@move_uploaded_file($tmpPath, $destPath)) {
+            return $destPath;
+        }
+
+        // Local stacks sometimes reject move_uploaded_file() despite a valid temp file.
+        if (@rename($tmpPath, $destPath) || @copy($tmpPath, $destPath)) {
+            if ($tmpPath !== $destPath && file_exists($tmpPath)) {
+                @unlink($tmpPath);
+            }
+            return $destPath;
+        }
+
+        throw new \RuntimeException('Failed to store uploaded PDF.');
     }
 
     // ── Get page count ────────────────────────────────────────

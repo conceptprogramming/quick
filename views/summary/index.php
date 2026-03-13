@@ -3,6 +3,7 @@ $seo = ['title' => 'Summarize PDF — QuickChatPDF', 'canonical' => '/summary'];
 ob_start();
 $appUrl = APP_URL;
 $cost   = CREDIT_COSTS['summary'] ?? 2;
+$creditBalance = (int) ($user['credits'] ?? 0);
 ?>
 
 <nav class="navbar navbar-light qcp-navbar sticky-top">
@@ -14,7 +15,7 @@ $cost   = CREDIT_COSTS['summary'] ?? 2;
         <div class="d-flex align-items-center gap-2">
             <span class="qcp-plan-badge">
                 <i class="bi bi-lightning-charge-fill text-warning me-1"></i>
-                <span id="navCredits"><?= number_format($user['credits'] ?? 0) ?></span> credits
+                <span class="js-credit-balance"><?= number_format($user['credits'] ?? 0) ?></span> credits
             </span>
             <a href="<?= APP_URL ?>/dashboard" class="btn btn-outline-secondary btn-sm">
                 <i class="bi bi-grid me-1"></i>Dashboard
@@ -291,9 +292,8 @@ ob_start();
                 document.getElementById('summaryText').innerHTML = data.data.summary;
                 document.getElementById('resultSection').style.display = 'block';
 
-                if (data.data.credits_remaining !== undefined) {
-                    document.getElementById('navCredits').textContent =
-                        parseInt(data.data.credits_remaining).toLocaleString();
+                if (data.data.credits_remaining !== undefined && window.qcpCredits) {
+                    window.qcpCredits.set(data.data.credits_remaining);
                 }
             } else {
                 const err = document.getElementById('errorSection');

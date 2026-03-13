@@ -2,6 +2,7 @@
 $seo = ['title' => 'Generate Q&A — QuickChatPDF', 'canonical' => '/qa'];
 ob_start();
 $appUrl = APP_URL;
+$creditBalance = (int) ($user['credits'] ?? 0);
 ?>
 
 <nav class="navbar navbar-light qcp-navbar sticky-top">
@@ -13,7 +14,7 @@ $appUrl = APP_URL;
         <div class="d-flex align-items-center gap-2">
             <span class="qcp-plan-badge">
                 <i class="bi bi-lightning-charge-fill text-warning me-1"></i>
-                <?= number_format($user['credits'] ?? 0) ?> credits
+                <span class="js-credit-balance"><?= number_format($user['credits'] ?? 0) ?></span> credits
             </span>
             <a href="<?= APP_URL ?>/dashboard" class="btn btn-outline-secondary btn-sm">
                 <i class="bi bi-grid me-1"></i>Dashboard
@@ -141,6 +142,9 @@ ob_start();
                 btn.disabled = false;
                 btn.innerHTML = '<i class="bi bi-patch-question-fill me-2"></i>Regenerate';
                 if (data.success) {
+                    if (window.qcpCredits) {
+                        window.qcpCredits.consume(<?= (int) (CREDIT_COSTS['qa'] ?? 2) ?>);
+                    }
                     out.innerHTML = renderQA(data.data.qa);
                 } else {
                     error.textContent = data.message;

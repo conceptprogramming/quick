@@ -4,6 +4,7 @@ ob_start();
 $appUrl = APP_URL;
 $userPlanKey = $user['plan'] ?? 'free';
 $userCredits = (int) ($user['credits'] ?? 0);
+$creditBalance = $userCredits;
 $joinedDate = date('M d, Y', strtotime($user['created_at']));
 $monthLabel = date('F Y');
 $subscriptionStatus = $subscription['status'] ?? null;
@@ -23,7 +24,7 @@ $canCancelSubscription = $userPlanKey !== 'free'
         <div class="d-flex align-items-center gap-3">
             <span class="qcp-plan-badge">
                 <i class="bi bi-lightning-charge-fill text-warning me-1"></i>
-                <?= number_format($userCredits) ?> credits
+                <span class="js-credit-balance"><?= number_format($userCredits) ?></span> credits
             </span>
             <a href="<?= $appUrl ?>/dashboard" class="btn btn-outline-secondary btn-sm">
                 <i class="bi bi-grid me-1"></i>Dashboard
