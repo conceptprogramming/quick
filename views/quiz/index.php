@@ -123,7 +123,7 @@ $quizCost = (int) (CREDIT_COSTS['quiz'] ?? 2);
 
     <div id="quizScreen" style="display:none">
         <section class="qcp-quiz-stage">
-            <aside class="qcp-quiz-sidebar">
+            <div class="qcp-quiz-topbar">
                 <div class="qcp-stage-card">
                     <span class="qcp-stage-label">Progress</span>
                     <h3 id="progressText">Question 1 of 5</h3>
@@ -131,19 +131,14 @@ $quizCost = (int) (CREDIT_COSTS['quiz'] ?? 2);
                         <div id="progressBar" class="progress-bar qcp-progress-bar" style="width:0%"></div>
                     </div>
                 </div>
-                <div class="qcp-stage-card">
-                    <span class="qcp-stage-label">Live score</span>
-                    <h3 id="scoreText">0 correct</h3>
-                    <p class="mb-0 text-muted">Final explanations appear only after the full quiz is complete.</p>
-                </div>
                 <div class="qcp-stage-card" id="timerWrap">
                     <span class="qcp-stage-label">Question timer</span>
                     <h3><span id="timerDisplay">60</span>s</h3>
                     <p class="mb-0 text-muted">Answer before the timer runs out.</p>
                 </div>
-            </aside>
+            </div>
 
-            <div class="qcp-question-shell">
+            <div class="qcp-question-shell qcp-question-shell-live">
                 <div class="qcp-question-card" id="questionCard">
                     <div class="qcp-question-meta">
                         <span class="qcp-question-chip" id="questionTypeChip">Multiple Choice</span>
@@ -151,12 +146,14 @@ $quizCost = (int) (CREDIT_COSTS['quiz'] ?? 2);
                     </div>
                     <h2 id="questionText" class="qcp-question-text"></h2>
                     <div id="optionsArea" class="qcp-options-grid"></div>
-                    <div id="feedbackArea" class="qcp-answer-state" style="display:none"></div>
                 </div>
 
                 <div class="qcp-question-actions">
-                    <button id="nextBtn" class="btn qcp-primary-btn" style="display:none">
-                        Next Question <i class="bi bi-arrow-right ms-2"></i>
+                    <button id="skipBtn" class="btn btn-outline-secondary btn-lg px-4">
+                        Skip Question
+                    </button>
+                    <button id="nextBtn" class="btn qcp-primary-btn" disabled>
+                        Next <i class="bi bi-arrow-right ms-2"></i>
                     </button>
                 </div>
             </div>
@@ -299,11 +296,15 @@ ob_start();
         color: #0f172a;
     }
 
-    .qcp-setup-grid,
-    .qcp-quiz-stage {
+    .qcp-setup-grid {
         display: grid;
         grid-template-columns: minmax(0, 1fr) 320px;
         gap: 24px;
+    }
+
+    .qcp-quiz-stage {
+        max-width: 980px;
+        margin: 0 auto;
     }
 
     .qcp-setup-card,
@@ -399,6 +400,13 @@ ob_start();
         padding: 22px;
     }
 
+    .qcp-quiz-topbar {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 18px;
+        margin-bottom: 24px;
+    }
+
     .qcp-side-card h3,
     .qcp-stage-card h3 {
         font-size: 1.2rem;
@@ -454,9 +462,14 @@ ob_start();
         min-width: 0;
     }
 
+    .qcp-question-shell-live {
+        max-width: 820px;
+        margin: 0 auto;
+    }
+
     .qcp-question-card {
         position: relative;
-        padding: 28px;
+        padding: 34px;
         overflow: hidden;
     }
 
@@ -474,31 +487,34 @@ ob_start();
         display: flex;
         flex-wrap: wrap;
         gap: 10px;
-        margin-bottom: 20px;
+        margin-bottom: 24px;
     }
 
     .qcp-question-text {
-        font-size: clamp(1.4rem, 2vw, 2rem);
+        font-size: clamp(1.8rem, 3vw, 3rem);
         font-weight: 800;
-        line-height: 1.25;
+        line-height: 1.15;
         color: #0f172a;
-        margin-bottom: 24px;
+        margin-bottom: 28px;
+        max-width: 720px;
     }
 
     .qcp-options-grid {
         display: grid;
-        gap: 14px;
+        gap: 16px;
     }
 
     .qcp-option-btn {
         width: 100%;
         text-align: left;
-        padding: 18px 20px;
-        border-radius: 18px;
+        padding: 20px 22px;
+        border-radius: 20px;
         border: 1px solid #dbe3f0;
         background: linear-gradient(180deg, #ffffff 0%, #f8fafc 100%);
         color: #0f172a;
         transition: transform .2s ease, border-color .2s ease, box-shadow .2s ease, background .2s ease;
+        font-size: 1rem;
+        line-height: 1.55;
     }
 
     .qcp-option-btn:hover:not(:disabled) {
@@ -536,28 +552,6 @@ ob_start();
         margin-right: 12px;
     }
 
-    .qcp-answer-state {
-        margin-top: 18px;
-        padding: 16px 18px;
-        border-radius: 18px;
-        border: 1px solid #dbe3f0;
-        background: #f8fafc;
-        color: #334155;
-        font-weight: 600;
-    }
-
-    .qcp-answer-state.correct {
-        border-color: #bbf7d0;
-        background: #f0fdf4;
-        color: #166534;
-    }
-
-    .qcp-answer-state.wrong {
-        border-color: #fecaca;
-        background: #fef2f2;
-        color: #b91c1c;
-    }
-
     .qcp-result-hero {
         margin-bottom: 22px;
         padding: 28px;
@@ -585,6 +579,10 @@ ob_start();
 
     .qcp-review-panel {
         padding: 26px;
+    }
+
+    .qcp-question-actions {
+        justify-content: center;
     }
 
     .qcp-review-item {
@@ -641,6 +639,10 @@ ob_start();
             grid-template-columns: 1fr;
         }
 
+        .qcp-quiz-topbar {
+            grid-template-columns: 1fr;
+        }
+
         .qcp-result-summary {
             grid-template-columns: 1fr;
         }
@@ -677,6 +679,7 @@ ob_start();
     let timerSecs = 60;
     let timerInterval = null;
     let quizType = 'mcq';
+    let pendingAnswer = null;
 
     document.getElementById('startBtn').addEventListener('click', function () {
         quizType = document.getElementById('quizType').value;
@@ -711,6 +714,7 @@ ob_start();
                 current = 0;
                 score = 0;
                 answered = [];
+                pendingAnswer = null;
 
                 hide('loadingScreen');
                 show('quizScreen');
@@ -732,12 +736,10 @@ ob_start();
 
         document.getElementById('progressText').textContent = 'Question ' + (current + 1) + ' of ' + total;
         document.getElementById('questionCounterChip').textContent = 'Question ' + (current + 1);
-        document.getElementById('scoreText').textContent = score + ' correct';
         document.getElementById('progressBar').style.width = (((current) / total) * 100) + '%';
         document.getElementById('questionText').textContent = q.question;
-        document.getElementById('feedbackArea').style.display = 'none';
-        document.getElementById('feedbackArea').className = 'qcp-answer-state';
-        document.getElementById('nextBtn').style.display = 'none';
+        document.getElementById('nextBtn').disabled = true;
+        pendingAnswer = null;
 
         const opts = document.getElementById('optionsArea');
         opts.innerHTML = '';
@@ -752,7 +754,7 @@ ob_start();
                 btn.dataset.key = key;
                 btn.innerHTML = '<span class="qcp-option-label">' + escapeHtml(key) + '</span><span>' + escapeHtml(String(value)) + '</span>';
                 btn.addEventListener('click', function () {
-                    answerCurrentQuestion(key);
+                    selectAnswer(key);
                 });
                 opts.appendChild(btn);
             });
@@ -767,7 +769,7 @@ ob_start();
                 btn.dataset.key = option.key ? 'true' : 'false';
                 btn.innerHTML = '<i class="bi ' + option.icon + ' me-2"></i><span>' + option.label + '</span>';
                 btn.addEventListener('click', function () {
-                    answerCurrentQuestion(option.key);
+                    selectAnswer(option.key);
                 });
                 opts.appendChild(btn);
             });
@@ -776,59 +778,27 @@ ob_start();
         startTimer();
     }
 
-    function answerCurrentQuestion(selected) {
-        stopTimer();
-
-        const q = quizData[current];
-        const correct = quizType === 'mcq' ? q.answer : Boolean(q.answer);
-        const isCorrect = selected === correct;
-        const selectedLabel = formatAnswer(selected, q);
-        const correctLabel = formatAnswer(correct, q);
-
-        if (isCorrect) {
-            score++;
-        }
-
+    function selectAnswer(selected) {
+        pendingAnswer = selected;
         document.querySelectorAll('#optionsArea .qcp-option-btn').forEach(function (btn) {
-            btn.disabled = true;
             if (String(btn.dataset.key) === String(quizType === 'mcq' ? selected : (selected ? 'true' : 'false'))) {
                 btn.classList.add('selected');
+            } else {
+                btn.classList.remove('selected');
             }
         });
-
-        answered.push({
-            question: q.question,
-            selected: selectedLabel,
-            correct: correctLabel,
-            isCorrect: isCorrect,
-            explanation: q.explanation || '',
-            options: q.options || null
-        });
-
-        showFeedback(
-            isCorrect,
-            isCorrect ? 'Answer locked in. Nice work.' : 'Answer recorded. Review the correction in the results section.'
-        );
-    }
-
-    function showFeedback(isCorrect, message) {
-        const feedback = document.getElementById('feedbackArea');
-        feedback.className = 'qcp-answer-state ' + (isCorrect ? 'correct' : 'wrong');
-        feedback.innerHTML = '<i class="bi ' + (isCorrect ? 'bi-check2-circle' : 'bi-info-circle') + ' me-2"></i>' + escapeHtml(message);
-        feedback.style.display = 'block';
-        document.getElementById('scoreText').textContent = score + ' correct';
-        document.getElementById('nextBtn').style.display = 'inline-flex';
+        document.getElementById('nextBtn').disabled = false;
     }
 
     document.getElementById('nextBtn').addEventListener('click', function () {
-        current++;
-        if (current < quizData.length) {
-            renderQuestion();
+        if (pendingAnswer === null) {
             return;
         }
+        commitAnswerAndAdvance(false);
+    });
 
-        document.getElementById('progressBar').style.width = '100%';
-        showResults();
+    document.getElementById('skipBtn').addEventListener('click', function () {
+        commitAnswerAndAdvance(true);
     });
 
     function startTimer() {
@@ -864,23 +834,38 @@ ob_start();
     }
 
     function timeOut() {
+        commitAnswerAndAdvance(true);
+    }
+
+    function commitAnswerAndAdvance(skipped) {
+        stopTimer();
+
         const q = quizData[current];
         const correct = quizType === 'mcq' ? q.answer : Boolean(q.answer);
+        const selected = skipped ? null : pendingAnswer;
+        const isCorrect = selected !== null && selected === correct;
 
-        document.querySelectorAll('#optionsArea .qcp-option-btn').forEach(function (btn) {
-            btn.disabled = true;
-        });
+        if (isCorrect) {
+            score++;
+        }
 
         answered.push({
             question: q.question,
-            selected: 'No answer',
+            selected: selected === null ? 'Skipped' : formatAnswer(selected, q),
             correct: formatAnswer(correct, q),
-            isCorrect: false,
+            isCorrect: isCorrect,
             explanation: q.explanation || '',
             options: q.options || null
         });
 
-        showFeedback(false, 'Time is up. Review the correct answer in the final results.');
+        current++;
+        if (current < quizData.length) {
+            renderQuestion();
+            return;
+        }
+
+        document.getElementById('progressBar').style.width = '100%';
+        showResults();
     }
 
     function showResults() {
