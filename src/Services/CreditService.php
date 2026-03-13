@@ -15,6 +15,13 @@ class CreditService
         'pdfs_uploaded' => 'pdfs_uploaded',
     ];
 
+    private array $bonusMap = [
+        'pdfs_per_month' => 'bonus_pdfs',
+        'chat_messages' => 'bonus_chats',
+        'summaries' => 'bonus_summaries',
+        'quizzes' => 'bonus_quizzes',
+    ];
+
     // ── Check credits ─────────────────────────────────────────
     public function hasCredits(int $userId, string $feature, int $qty = 1): bool
     {
@@ -91,18 +98,26 @@ class CreditService
         $db = Database::getInstance();
         $month = date('Y-m');
         $column = $this->columnMap[$feature] ?? $feature;
-        $limit = PLANS[$plan]['benefits'][$feature] ?? 0;
+        $bonusColumn = $this->bonusMap[$feature] ?? null;
+        $baseLimit = PLANS[$plan]['benefits'][$feature] ?? 0;
+
+        $select = "SELECT {$column}";
+        if ($bonusColumn) {
+            $select .= ", COALESCE({$bonusColumn}, 0) AS bonus_limit";
+        }
 
         $st = $db->prepare("
-            SELECT {$column} FROM usage_counters
+            {$select}
             WHERE user_id = :uid AND month = :month
             LIMIT 1
         ");
         $st->execute(['uid' => $userId, 'month' => $month]);
         $row = $st->fetch();
         $used = $row ? ($row[$column] ?? 0) : 0;
+        $bonus = $row ? (int) ($row['bonus_limit'] ?? 0) : 0;
+        $effectiveLimit = $baseLimit + $bonus;
 
-        return $used < $limit;
+        return $used < $effectiveLimit;
     }
 
     // ── Increment usage ───────────────────────────────────────
