@@ -30,7 +30,7 @@ $st = $db->prepare("
         u.plan        AS user_plan
     FROM subscriptions s
     JOIN users u ON u.id = s.user_id
-    WHERE s.status = 'active'
+    WHERE s.status IN ('active', 'cancelled')
       AND s.paypal_sub_id IS NOT NULL
       AND s.paypal_sub_id != ''
 ");
@@ -85,8 +85,19 @@ foreach ($subscriptions as $sub) {
             continue;
         }
 
-        // ── CANCELLED / EXPIRED / SUSPENDED — downgrade user ──
-        if (in_array($ppStatus, ['CANCELLED', 'EXPIRED', 'SUSPENDED', 'INACTIVE'], true)) {
+        if ($ppStatus === 'CANCELLED') {
+            $db->prepare("
+                UPDATE subscriptions
+                SET status = 'cancelled',
+                    cancelled_at = COALESCE(cancelled_at, UTC_TIMESTAMP()),
+                    updated_at = UTC_TIMESTAMP()
+                WHERE id = :id
+            ")->execute(['id' => $sub['sub_row_id']]);
+            continue;
+        }
+
+        // ── EXPIRED / SUSPENDED — downgrade user ──────────────
+        if (in_array($ppStatus, ['EXPIRED', 'SUSPENDED', 'INACTIVE'], true)) {
             downgradeUser($db, $userId, $sub, $ppStatus, $log);
             $counts['downgraded']++;
         }

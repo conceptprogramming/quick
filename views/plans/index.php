@@ -4,6 +4,11 @@ ob_start();
 $appUrl = APP_URL;
 $userPlanKey = $user['plan'] ?? 'free';
 $userCredits = (int) ($user['credits'] ?? 0);
+$subscriptionStatus = $subscription['status'] ?? null;
+$subscriptionRenewsAt = $subscription['renews_at'] ?? null;
+$canCancelSubscription = $userPlanKey !== 'free'
+    && !empty($user['paypal_subscription_id'])
+    && $subscriptionStatus !== 'cancelled';
 ?>
 
 <!-- Navbar -->
@@ -61,9 +66,22 @@ $userCredits = (int) ($user['credits'] ?? 0);
             </div>
             <?php if ($userPlanKey !== 'free'): ?>
                 <div class="ms-auto">
-                    <span class="badge bg-success px-3 py-2">
-                        <i class="bi bi-check-circle-fill me-1"></i>Active Subscription
-                    </span>
+                    <div class="d-flex flex-column align-items-end gap-2">
+                        <span class="badge <?= $subscriptionStatus === 'cancelled' ? 'bg-warning text-dark' : 'bg-success' ?> px-3 py-2">
+                            <i class="bi <?= $subscriptionStatus === 'cancelled' ? 'bi-pause-circle-fill' : 'bi-check-circle-fill' ?> me-1"></i>
+                            <?= $subscriptionStatus === 'cancelled' ? 'Cancelled Renewal' : 'Active Subscription' ?>
+                        </span>
+                        <?php if ($canCancelSubscription): ?>
+                            <button class="btn btn-outline-danger btn-sm" id="cancelSubscriptionBtn">
+                                <i class="bi bi-x-circle me-1"></i>Cancel Subscription
+                            </button>
+                        <?php elseif ($subscriptionStatus === 'cancelled'): ?>
+                            <div class="text-muted small">
+                                Active until
+                                <?= $subscriptionRenewsAt ? htmlspecialchars(date('M j, Y', strtotime($subscriptionRenewsAt))) : 'period end' ?>
+                            </div>
+                        <?php endif; ?>
+                    </div>
                 </div>
             <?php endif; ?>
         </div>
@@ -179,39 +197,42 @@ $userCredits = (int) ($user['credits'] ?? 0);
         <div class="row g-4 justify-content-center">
             <?php
             $packMeta = [
-                'small' => ['icon' => 'bi-lightning-charge', 'color' => 'blue', 'label' => 'Starter'],
-                'medium' => ['icon' => 'bi-lightning-fill', 'color' => 'purple', 'label' => 'Popular'],
-                'large' => ['icon' => 'bi-lightning-charge-fill', 'color' => 'orange', 'label' => 'Best Value'],
+                'pdf_monthly' => ['icon' => 'bi-file-earmark-plus-fill', 'color' => 'blue', 'label' => 'PDF Boost'],
+                'summary_monthly' => ['icon' => 'bi-card-text', 'color' => 'purple', 'label' => 'Summary Boost'],
+                'quiz_monthly' => ['icon' => 'bi-patch-question-fill', 'color' => 'orange', 'label' => 'Quiz Boost'],
+                'chat_credits' => ['icon' => 'bi-lightning-charge-fill', 'color' => 'teal', 'label' => 'Chat Credits'],
             ];
             $canTopup = (($user['plan'] ?? 'free') !== 'free') && !empty($user['paypal_subscription_id']);
             foreach (TOPUP_PACKS as $packKey => $pack):
                 $meta = $packMeta[$packKey];
                 ?>
                 <div class="col-sm-4 col-lg-3">
-                    <div class="qcp-topup-card <?= $packKey === 'medium' ? 'qcp-topup-featured' : '' ?>">
-                        <?php if ($packKey === 'medium'): ?>
+                    <div class="qcp-topup-card <?= $packKey === 'summary_monthly' ? 'qcp-topup-featured' : '' ?>">
+                        <?php if ($packKey === 'summary_monthly'): ?>
                             <div class="qcp-topup-ribbon">Popular</div>
                         <?php endif; ?>
                         <div class="qcp-feature-icon qcp-icon-<?= $meta['color'] ?> mx-auto mb-3">
                             <i class="bi <?= $meta['icon'] ?>"></i>
                         </div>
                         <div class="fw-700 mb-1">
-                            <?= $meta['label'] ?> Pack
+                            <?= $pack['name'] ?>
                         </div>
                         <div class="qcp-topup-credits">
-                            <?= number_format($pack['credits']) ?>
-                            <span class="qcp-topup-unit">credits</span>
+                            <?= number_format($pack['units']) ?>
+                            <span class="qcp-topup-unit"><?= htmlspecialchars($pack['unit_label']) ?></span>
                         </div>
                         <div class="qcp-topup-price mb-3">$
                             <?= number_format($pack['price'], 2) ?> one-time
                         </div>
                         <div class="text-muted small mb-4">
                             $
-                            <?= number_format($pack['price'] / $pack['credits'], 4) ?> per credit
+                            <?= number_format($pack['price'] / $pack['units'], 4) ?> per unit
                         </div>
                         <button
-                            class="btn <?= $packKey === 'medium' ? 'btn-primary' : 'btn-outline-primary' ?> w-100 qcp-topup-btn"
-                            data-pack="<?= $packKey ?>" data-credits="<?= $pack['credits'] ?>"
+                            class="btn <?= $packKey === 'summary_monthly' ? 'btn-primary' : 'btn-outline-primary' ?> w-100 qcp-topup-btn"
+                            data-pack="<?= $packKey ?>" data-units="<?= $pack['units'] ?>"
+                            data-label="<?= htmlspecialchars($pack['name']) ?>"
+                            data-unit-label="<?= htmlspecialchars($pack['unit_label']) ?>"
                             data-price="<?= $pack['price'] ?>" data-can-topup="<?= $canTopup ? '1' : '0' ?>">
                             <i class="bi bi-paypal me-2"></i>Buy for $
                             <?= number_format($pack['price'], 2) ?>
@@ -255,7 +276,7 @@ $userCredits = (int) ($user['credits'] ?? 0);
                         <span class="fw-700" id="modalAmount">—</span>
                     </div>
                     <div class="d-flex justify-content-between align-items-center">
-                        <span class="text-muted small">Credits</span>
+                        <span class="text-muted small">Included</span>
                         <span class="fw-600 small text-success" id="modalCredits">—</span>
                     </div>
                 </div>
@@ -427,15 +448,17 @@ ob_start();
             }
 
             const pack = this.dataset.pack;
-            const credits = parseInt(this.dataset.credits);
+            const units = parseInt(this.dataset.units, 10);
+            const label = this.dataset.label;
+            const unitLabel = this.dataset.unitLabel;
             const price = parseFloat(this.dataset.price);
 
-            document.getElementById('modalTitle').textContent = 'Buy Credit Pack';
-            document.getElementById('modalPlanName').textContent = credits + ' Credit Top-Up';
+            document.getElementById('modalTitle').textContent = 'Buy Add-On Pack';
+            document.getElementById('modalPlanName').textContent = label;
             document.getElementById('modalAmount').textContent = '$' + price.toFixed(2) + ' one-time';
-            document.getElementById('modalCredits').textContent = '+' + credits + ' credits added instantly';
+            document.getElementById('modalCredits').textContent = '+' + units + ' ' + unitLabel;
 
-            renderPayPalTopup(pack, credits, price);
+            renderPayPalTopup(pack, label, units, unitLabel, price);
             new bootstrap.Modal(document.getElementById('paypalModal')).show();
         });
     });
@@ -472,7 +495,7 @@ ob_start();
     }
 
     // ── Render PayPal One-Time Top-Up Button ──────────────────
-    function renderPayPalTopup(packKey, credits, price) {
+    function renderPayPalTopup(packKey, label, units, unitLabel, price) {
         clearPayPalContainer();
         if (typeof paypalTopup === 'undefined') {
             showPayPalError('PayPal checkout is unavailable right now.');
@@ -486,7 +509,7 @@ ob_start();
                 return actions.order.create({
                     purchase_units: [{
                         amount: { value: price.toFixed(2) },
-                        description: credits + ' QuickChatPDF Credits',
+                        description: label + ' - ' + units + ' ' + unitLabel,
                     }],
                 });
             },
@@ -507,6 +530,33 @@ ob_start();
             },
         });
         paypalButtonInstance.render('#paypal-button-container');
+    }
+
+    const cancelBtn = document.getElementById('cancelSubscriptionBtn');
+    if (cancelBtn) {
+        cancelBtn.addEventListener('click', function () {
+            if (!window.confirm('Cancel your PayPal subscription renewal? Your current plan will stay active until the end of the paid period.')) {
+                return;
+            }
+
+            fetch('<?= $appUrl ?>/subscription/cancel', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ _csrf: CSRF }),
+            })
+                .then(function (r) { return r.json(); })
+                .then(function (data) {
+                    if (data.success) {
+                        showToast(data.message, 'success');
+                        setTimeout(function () { location.reload(); }, 1500);
+                    } else {
+                        showToast(data.message || 'Could not cancel subscription.', 'danger');
+                    }
+                })
+                .catch(function () {
+                    showToast('Server error. Contact support.', 'danger');
+                });
+        });
     }
 
     // ── Handle Success ─────────────────────────────────────────

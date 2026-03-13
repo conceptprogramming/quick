@@ -279,7 +279,15 @@ ob_start();
         );
 
         fetch(UPLOAD_URL, { method: 'POST', body: formData })
-            .then(function (r) { return r.json(); })
+            .then(function (r) {
+                return r.text().then(function (text) {
+                    try {
+                        return JSON.parse(text);
+                    } catch (err) {
+                        throw new Error(text.replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ').trim() || 'Upload endpoint returned invalid JSON.');
+                    }
+                });
+            })
             .then(function (data) {
                 if (!data.success) { showError(data.message); return; }
                 showProcessing(data.data.pages);

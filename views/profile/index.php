@@ -6,6 +6,11 @@ $userPlanKey = $user['plan'] ?? 'free';
 $userCredits = (int) ($user['credits'] ?? 0);
 $joinedDate = date('M d, Y', strtotime($user['created_at']));
 $monthLabel = date('F Y');
+$subscriptionStatus = $subscription['status'] ?? null;
+$subscriptionRenewsAt = $subscription['renews_at'] ?? null;
+$canCancelSubscription = $userPlanKey !== 'free'
+    && !empty($user['paypal_subscription_id'])
+    && $subscriptionStatus !== 'cancelled';
 ?>
 
 <!-- Navbar -->
@@ -118,6 +123,13 @@ $monthLabel = date('F Y');
                                     ? '$' . number_format($plan['price'], 2) . '/month'
                                     : 'Free forever' ?>
                             </div>
+                            <?php if ($userPlanKey !== 'free'): ?>
+                                <div class="small mt-2 <?= $subscriptionStatus === 'cancelled' ? 'text-warning' : 'text-success' ?>">
+                                    <?= $subscriptionStatus === 'cancelled'
+                                        ? 'Renewal cancelled. Access stays active until ' . ($subscriptionRenewsAt ? date('M j, Y', strtotime($subscriptionRenewsAt)) : 'period end')
+                                        : 'Subscription active' ?>
+                                </div>
+                            <?php endif; ?>
                         </div>
                         <div class="qcp-feature-icon qcp-icon-purple">
                             <i class="bi bi-stars"></i>
@@ -152,6 +164,12 @@ $monthLabel = date('F Y');
                             <?= $limits['size_mb'] ?>MB per PDF
                         </li>
                     </ul>
+
+                    <?php if ($canCancelSubscription): ?>
+                        <button class="btn btn-outline-danger w-100 btn-sm mb-2" id="cancelSubscriptionBtn">
+                            <i class="bi bi-x-circle me-2"></i>Cancel Subscription
+                        </button>
+                    <?php endif; ?>
 
                     <?php if ($userPlanKey !== 'professional'): ?>
                         <a href="<?= $appUrl ?>/plans" class="btn btn-primary w-100 btn-sm">
@@ -459,6 +477,34 @@ ob_start();
         box-shadow: 0 2px 8px rgba(0, 0, 0, .04);
     }
 </style>
+<script>
+    const PROFILE_APP_URL = '<?= $appUrl ?>';
+    const cancelSubscriptionBtn = document.getElementById('cancelSubscriptionBtn');
+
+    if (cancelSubscriptionBtn) {
+        cancelSubscriptionBtn.addEventListener('click', function () {
+            if (!window.confirm('Cancel your PayPal subscription renewal? Your current plan will stay active until the end of the paid period.')) {
+                return;
+            }
+
+            fetch(PROFILE_APP_URL + '/subscription/cancel', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({}),
+            })
+                .then(function (r) { return r.json(); })
+                .then(function (data) {
+                    window.alert(data.message || (data.success ? 'Subscription updated.' : 'Could not cancel subscription.'));
+                    if (data.success) {
+                        location.reload();
+                    }
+                })
+                .catch(function () {
+                    window.alert('Server error. Contact support.');
+                });
+        });
+    }
+</script>
 <?php
 $extraScripts = ob_get_clean();
 require __DIR__ . '/../layouts/base.php';

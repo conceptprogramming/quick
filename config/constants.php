@@ -87,9 +87,10 @@ define('CREDIT_COSTS', [
 
 // ── Top-Up Packs ──────────────────────────────────────────────
 define('TOPUP_PACKS', [
-    'small' => ['credits' => 50, 'price' => 1.99],
-    'medium' => ['credits' => 150, 'price' => 4.99],
-    'large' => ['credits' => 400, 'price' => 9.99],
+    'pdf_monthly' => ['name' => 'Monthly PDF Pack', 'type' => 'bonus_pdfs', 'units' => 5, 'unit_label' => 'PDFs this month', 'price' => 1.99],
+    'summary_monthly' => ['name' => 'Summary Pack', 'type' => 'bonus_summaries', 'units' => 10, 'unit_label' => 'summaries this month', 'price' => 3.99],
+    'quiz_monthly' => ['name' => 'Quiz Pack', 'type' => 'bonus_quizzes', 'units' => 10, 'unit_label' => 'quizzes this month', 'price' => 2.99],
+    'chat_credits' => ['name' => 'Chat Credit Pack', 'type' => 'credits', 'units' => 150, 'unit_label' => 'credits', 'price' => 4.99],
 ]);
 
 // ── Rate Limits ───────────────────────────────────────────────

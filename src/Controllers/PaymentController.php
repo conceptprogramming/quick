@@ -3,6 +3,7 @@ namespace Controllers;
 
 use Database;
 use Core\Session;
+use Services\MailService;
 
 class PaymentController
 {
@@ -114,6 +115,10 @@ class PaymentController
             ? 'Subscription is active.'
             : 'Subscribed to ' . PLANS[$plan]['name'] . ' plan! ' . number_format($creditGain) . ' credits added.';
 
+        if (!$alreadyProcessed) {
+            $this->sendSubscriptionEmail($user['email'] ?? '', PLANS[$plan]['name'], $creditGain, $amount > 0 ? $amount : (float) PLANS[$plan]['price'], $currency);
+        }
+
         $this->respond([
             'success' => true,
             'message' => $message,
@@ -168,21 +173,36 @@ class PaymentController
             $this->respond(['success' => true, 'message' => 'Top-up already processed.']);
         }
 
-        $credits = (int) TOPUP_PACKS[$pack]['credits'];
+        $packConfig = TOPUP_PACKS[$pack];
+        $units = (int) $packConfig['units'];
         $db->beginTransaction();
 
         try {
-            $this->addCreditsWithLedger($db, $userId, $credits, 'topup', $orderId, 'Top-up pack: ' . $pack);
-            $this->recordPayment($db, $userId, 'topup', null, $credits, $paid, $currency, $txnId);
+            if (($packConfig['type'] ?? 'credits') === 'credits') {
+                $this->addCreditsWithLedger($db, $userId, $units, 'topup', $orderId, 'Top-up pack: ' . $packConfig['name']);
+            } else {
+                $this->addUsageBonus($db, $userId, $packConfig['type'], $units);
+                $this->insertLedgerEntry($db, $userId, 0, 'topup', $orderId, $packConfig['name'] . ' +' . $units . ' ' . $packConfig['unit_label']);
+            }
+
+            $this->recordPayment($db, $userId, 'topup', $pack, $units, $paid, $currency, $txnId);
             $db->commit();
         } catch (\Throwable $e) {
             $db->rollBack();
             throw $e;
         }
 
+        $this->sendTopupEmail(
+            $user['email'] ?? '',
+            $packConfig['name'],
+            number_format($units) . ' ' . $packConfig['unit_label'],
+            $paid,
+            $currency
+        );
+
         $this->respond([
             'success' => true,
-            'message' => number_format($credits) . ' credits added to your account!',
+            'message' => '+' . number_format($units) . ' ' . $packConfig['unit_label'] . ' added!',
         ]);
     }
 
@@ -211,6 +231,9 @@ class PaymentController
                     break;
 
                 case 'BILLING.SUBSCRIPTION.CANCELLED':
+                    $this->markSubscriptionCancelled($event);
+                    break;
+
                 case 'BILLING.SUBSCRIPTION.EXPIRED':
                 case 'BILLING.SUBSCRIPTION.SUSPENDED':
                     $this->downgradeFromWebhook($event, strtolower(substr(strrchr($type, '.'), 1)));
@@ -226,6 +249,50 @@ class PaymentController
         } catch (\Throwable $e) {
             error_log('[PayPal Webhook] Error: ' . $e->getMessage());
             echo json_encode(['status' => 'error']);
+        }
+    }
+
+    public function cancelSubscription(): void
+    {
+        header('Content-Type: application/json');
+
+        try {
+            $userId = $this->session->userId();
+            if (!$userId) {
+                $this->respond(['success' => false, 'message' => 'Not authenticated']);
+            }
+
+            $db = Database::getInstance();
+            $user = $this->getUser($db, $userId);
+            $subId = $user['paypal_subscription_id'] ?? '';
+            if (!$subId || ($user['plan'] ?? 'free') === 'free') {
+                $this->respond(['success' => false, 'message' => 'No active subscription found.']);
+            }
+
+            $token = $this->getPayPalAccessToken();
+            if (!$token) {
+                $this->respond(['success' => false, 'message' => 'Could not connect to PayPal.']);
+            }
+
+            if (!$this->cancelPayPalSubscription($token, $subId)) {
+                $this->respond(['success' => false, 'message' => 'PayPal could not cancel the subscription.']);
+            }
+
+            $db->prepare("
+                UPDATE subscriptions
+                SET status = 'cancelled',
+                    cancelled_at = COALESCE(cancelled_at, UTC_TIMESTAMP()),
+                    updated_at = UTC_TIMESTAMP()
+                WHERE paypal_sub_id = :sub
+            ")->execute(['sub' => $subId]);
+
+            $this->respond([
+                'success' => true,
+                'message' => 'Subscription cancelled. Your current plan stays active until the end of the paid period.',
+            ]);
+        } catch (\Throwable $e) {
+            error_log('[Subscription Cancel] ' . $e->getMessage());
+            $this->respond(['success' => false, 'message' => 'Could not cancel subscription right now.']);
         }
     }
 
@@ -396,6 +463,23 @@ class PaymentController
             $db->rollBack();
             throw $e;
         }
+    }
+
+    private function markSubscriptionCancelled(array $event): void
+    {
+        $subId = $event['resource']['id'] ?? '';
+        if (!$subId) {
+            return;
+        }
+
+        $db = Database::getInstance();
+        $db->prepare("
+            UPDATE subscriptions
+            SET status = 'cancelled',
+                cancelled_at = COALESCE(cancelled_at, UTC_TIMESTAMP()),
+                updated_at = UTC_TIMESTAMP()
+            WHERE paypal_sub_id = :sub
+        ")->execute(['sub' => $subId]);
     }
 
     private function downgradeUser(\PDO $db, int $userId, array $sub, string $reason): void
@@ -665,6 +749,34 @@ class PaymentController
         $this->insertLedgerEntry($db, $userId, $amount, $feature, $orderId, $note);
     }
 
+    private function addUsageBonus(\PDO $db, int $userId, string $bonusType, int $amount): void
+    {
+        $columnMap = [
+            'bonus_pdfs' => 'bonus_pdfs',
+            'bonus_chats' => 'bonus_chats',
+            'bonus_summaries' => 'bonus_summaries',
+            'bonus_quizzes' => 'bonus_quizzes',
+        ];
+
+        $column = $columnMap[$bonusType] ?? null;
+        if (!$column) {
+            throw new \InvalidArgumentException('Invalid top-up type');
+        }
+
+        $month = date('Y-m');
+        $db->prepare("
+            INSERT INTO usage_counters (user_id, month, {$column})
+            VALUES (:uid, :month, :amount)
+            ON DUPLICATE KEY UPDATE {$column} = {$column} + :update_amount,
+                                    updated_at = UTC_TIMESTAMP()
+        ")->execute([
+            'uid' => $userId,
+            'month' => $month,
+            'amount' => $amount,
+            'update_amount' => $amount,
+        ]);
+    }
+
     private function insertLedgerEntry(
         \PDO $db,
         int $userId,
@@ -788,6 +900,32 @@ class PaymentController
         exit;
     }
 
+    private function sendSubscriptionEmail(string $email, string $planName, int $creditsAdded, float $amount, string $currency): void
+    {
+        if ($email === '') {
+            return;
+        }
+
+        try {
+            (new MailService())->sendSubscriptionReceipt($email, $planName, $creditsAdded, $amount, $currency);
+        } catch (\Throwable $e) {
+            error_log('[Mail Subscription] ' . $e->getMessage());
+        }
+    }
+
+    private function sendTopupEmail(string $email, string $packName, string $unitsLabel, float $amount, string $currency): void
+    {
+        if ($email === '') {
+            return;
+        }
+
+        try {
+            (new MailService())->sendTopupReceipt($email, $packName, $unitsLabel, $amount, $currency);
+        } catch (\Throwable $e) {
+            error_log('[Mail Topup] ' . $e->getMessage());
+        }
+    }
+
     private function verifyWebhookSignature(array $headers, string $body): bool
     {
         $normalized = [];
@@ -896,5 +1034,26 @@ class PaymentController
         }
 
         return json_decode($res, true);
+    }
+
+    private function cancelPayPalSubscription(string $token, string $subId): bool
+    {
+        $payload = json_encode(['reason' => 'Cancelled by subscriber from QuickChatPDF']);
+        $ch = curl_init(PAYPAL_API_BASE . '/v1/billing/subscriptions/' . $subId . '/cancel');
+        curl_setopt_array($ch, [
+            CURLOPT_RETURNTRANSFER => true,
+            CURLOPT_POST           => true,
+            CURLOPT_POSTFIELDS     => $payload,
+            CURLOPT_TIMEOUT        => 10,
+            CURLOPT_HTTPHEADER     => [
+                'Authorization: Bearer ' . $token,
+                'Content-Type: application/json',
+            ],
+        ]);
+        curl_exec($ch);
+        $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+        curl_close($ch);
+
+        return $httpCode === 204;
     }
 }

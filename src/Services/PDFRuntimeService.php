@@ -44,12 +44,14 @@ class PDFRuntimeService
     {
         $sessionId = session_id();
 
-        if (!is_dir($this->tmpPdfDir)) {
-            mkdir($this->tmpPdfDir, 0775, true);
+        if (!is_dir($this->tmpPdfDir) && !@mkdir($this->tmpPdfDir, 0775, true) && !is_dir($this->tmpPdfDir)) {
+            throw new \RuntimeException('Could not create temporary PDF directory.');
         }
 
         $destPath = $this->tmpPdfDir . "/pdf_{$sessionId}.pdf";
-        move_uploaded_file($file['tmp_name'], $destPath);
+        if (!@move_uploaded_file($file['tmp_name'], $destPath)) {
+            throw new \RuntimeException('Failed to store uploaded PDF.');
+        }
         return $destPath;
     }
 
@@ -61,7 +63,10 @@ class PDFRuntimeService
             return (int) $m[1];
         }
 
-        $content = file_get_contents($pdfPath);
+        $content = @file_get_contents($pdfPath);
+        if ($content === false) {
+            return 0;
+        }
         preg_match_all('/\/Count\s+(\d+)/', $content, $matches);
         if (!empty($matches[1])) {
             return (int) max($matches[1]);
@@ -86,8 +91,8 @@ class PDFRuntimeService
         $sessionId = session_id();
         $outDir = $this->tmpPagesDir . "/{$sessionId}";
 
-        if (!is_dir($outDir)) {
-            mkdir($outDir, 0775, true);
+        if (!is_dir($outDir) && !@mkdir($outDir, 0775, true) && !is_dir($outDir)) {
+            throw new \RuntimeException('Could not create temporary image directory.');
         }
 
         $gs = $this->getGsPath();
@@ -122,12 +127,12 @@ class PDFRuntimeService
 
         $pdf = $this->tmpPdfDir . "/pdf_{$sessionId}.pdf";
         if (file_exists($pdf))
-            unlink($pdf);
+            @unlink($pdf);
 
         $pagesDir = $this->tmpPagesDir . "/{$sessionId}";
         if (is_dir($pagesDir)) {
-            array_map('unlink', glob($pagesDir . '/*'));
-            rmdir($pagesDir);
+            array_map(static fn($path) => @unlink($path), glob($pagesDir . '/*') ?: []);
+            @rmdir($pagesDir);
         }
     }
 }

@@ -36,6 +36,7 @@ $routes = [
         '/quiz/truefalse' => ['Controllers\QuizController', 'trueFalse'],
         '/payment/confirm' => ['Controllers\PaymentController', 'confirm'],
         '/payment/webhook'  => ['Controllers\PaymentController', 'webhook'], 
+        '/subscription/cancel' => ['Controllers\PaymentController', 'cancelSubscription'],
         '/admin/login' => ['Controllers\AdminController', 'login'],
         '/admin/logout' => ['Controllers\AdminController', 'adminLogout'],
         '/admin/credits' => ['Controllers\AdminController', 'adjustCredits'],
@@ -58,6 +59,7 @@ $protected = [
     '/pdf/test',
     '/plans',
     '/payment/confirm',
+    '/subscription/cancel',
     '/profile',
 ];
 

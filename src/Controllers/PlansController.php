@@ -48,6 +48,17 @@ class PlansController
         $st->execute(['uid' => $userId]);
         $ledger = $st->fetchAll();
 
+        $subscription = null;
+        $st = $db->prepare("
+            SELECT *
+            FROM subscriptions
+            WHERE user_id = :uid
+            ORDER BY created_at DESC, id DESC
+            LIMIT 1
+        ");
+        $st->execute(['uid' => $userId]);
+        $subscription = $st->fetch() ?: null;
+
         require __DIR__ . '/../../views/plans/index.php';
     }
 }
