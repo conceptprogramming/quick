@@ -530,10 +530,10 @@ class PaymentController
                 VALUES
                     (:id, :month, :pdfs, :chat, :sum, :quiz, :bpdfs, :bchats, :bsum, :bquiz)
                 ON DUPLICATE KEY UPDATE
-                    bonus_pdfs      = :bpdfs,
-                    bonus_chats     = :bchats,
-                    bonus_summaries = :bsum,
-                    bonus_quizzes   = :bquiz,
+                    bonus_pdfs      = :upd_bpdfs,
+                    bonus_chats     = :upd_bchats,
+                    bonus_summaries = :upd_bsum,
+                    bonus_quizzes   = :upd_bquiz,
                     updated_at      = UTC_TIMESTAMP()
             ")->execute([
                 'id'     => $userId,
@@ -546,6 +546,10 @@ class PaymentController
                 'bchats' => $bonusChats,
                 'bsum'   => $bonusSummaries,
                 'bquiz'  => $bonusQuizzes,
+                'upd_bpdfs'  => $bonusPdfs,
+                'upd_bchats' => $bonusChats,
+                'upd_bsum'   => $bonusSummaries,
+                'upd_bquiz'  => $bonusQuizzes,
             ]);
             return;
         }
