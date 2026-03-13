@@ -212,7 +212,7 @@ $userCredits = (int) ($user['credits'] ?? 0);
                         <button
                             class="btn <?= $packKey === 'medium' ? 'btn-primary' : 'btn-outline-primary' ?> w-100 qcp-topup-btn"
                             data-pack="<?= $packKey ?>" data-credits="<?= $pack['credits'] ?>"
-                            data-price="<?= $pack['price'] ?>" <?= $canTopup ? '' : 'disabled' ?>>
+                            data-price="<?= $pack['price'] ?>" data-can-topup="<?= $canTopup ? '1' : '0' ?>">
                             <i class="bi bi-paypal me-2"></i>Buy for $
                             <?= number_format($pack['price'], 2) ?>
                         </button>
@@ -421,6 +421,11 @@ ob_start();
     // ── Top-up buy ────────────────────────────────────────────
     document.querySelectorAll('.qcp-topup-btn').forEach(function (btn) {
         btn.addEventListener('click', function () {
+            if (this.dataset.canTopup !== '1') {
+                window.alert('You need to purchase a paid subscription before buying a credit top-up.');
+                return;
+            }
+
             const pack = this.dataset.pack;
             const credits = parseInt(this.dataset.credits);
             const price = parseFloat(this.dataset.price);

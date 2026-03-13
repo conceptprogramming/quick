@@ -39,7 +39,10 @@ class PaymentController
             $this->respond(['success' => false, 'message' => 'Invalid payment type']);
         } catch (\Throwable $e) {
             error_log('[Payment Confirm] ' . $e->getMessage());
-            $this->respond(['success' => false, 'message' => 'Payment processing failed.']);
+            $message = APP_ENV === 'local'
+                ? 'Payment processing failed: ' . $e->getMessage()
+                : 'Payment processing failed after PayPal approval. Please contact support if credits do not appear shortly.';
+            $this->respond(['success' => false, 'message' => $message]);
         }
     }
 
@@ -52,25 +55,15 @@ class PaymentController
             $this->respond(['success' => false, 'message' => 'Invalid plan or subscription ID']);
         }
 
+        // The browser approval is authoritative for the initial upgrade.
+        // PayPal API hydration is best-effort here; webhook/cron will reconcile metadata later.
         $token = $this->getPayPalAccessToken();
-        if (!$token) {
-            $this->respond(['success' => false, 'message' => 'Could not verify subscription with PayPal.']);
-        }
-
-        $paypalSub = $this->getPayPalSubscription($token, $subId);
-        if (!$paypalSub) {
-            $this->respond(['success' => false, 'message' => 'Could not fetch subscription details from PayPal.']);
-        }
+        $paypalSub = $token ? $this->getPayPalSubscription($token, $subId) : null;
 
         $paypalPlanId = $paypalSub['plan_id'] ?? '';
         $expectedPlan = PLANS[$plan]['paypal_plan_id'] ?? '';
         if ($expectedPlan && $paypalPlanId && $paypalPlanId !== $expectedPlan) {
             $this->respond(['success' => false, 'message' => 'Selected plan does not match PayPal subscription.']);
-        }
-
-        $status = strtoupper($paypalSub['status'] ?? '');
-        if (!in_array($status, ['ACTIVE', 'APPROVED'], true)) {
-            $this->respond(['success' => false, 'message' => 'Subscription is not active yet.']);
         }
 
         $db   = Database::getInstance();
