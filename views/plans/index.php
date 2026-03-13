@@ -279,6 +279,8 @@ $csrfToken      = \Middleware\CSRFMiddleware::generate();
 $paypalSDKUrl   = PAYPAL_MODE === 'live'          
     ? 'https://www.paypal.com/sdk/js'
     : 'https://www.sandbox.paypal.com/sdk/js';
+$paypalSubscriptionSdkUrl = $paypalSDKUrl . '?client-id=' . rawurlencode($paypalClientId) . '&vault=true&intent=subscription&components=buttons&currency=USD&data-namespace=paypalSubscription';
+$paypalTopupSdkUrl = $paypalSDKUrl . '?client-id=' . rawurlencode($paypalClientId) . '&intent=capture&components=buttons&currency=USD&data-namespace=paypalTopup';
 ob_start();
 ?>
 
@@ -385,9 +387,9 @@ ob_start();
     }
 </style>
 
-<!-- PayPal SDK -->
-<!-- ✅ CORRECT — switches based on PAYPAL_MODE -->
-<script src="<?= $paypalSDKUrl ?>?client-id=<?= htmlspecialchars($paypalClientId) ?>&vault=true&intent=subscription"
+<script src="<?= htmlspecialchars($paypalSubscriptionSdkUrl, ENT_QUOTES, 'UTF-8') ?>"
+        data-sdk-integration-source="button-factory"></script>
+<script src="<?= htmlspecialchars($paypalTopupSdkUrl, ENT_QUOTES, 'UTF-8') ?>"
         data-sdk-integration-source="button-factory"></script>
 
 
@@ -434,7 +436,11 @@ ob_start();
     // ── Render PayPal Subscription Button ─────────────────────
     function renderPayPalSubscription(planId, planKey, type) {
         clearPayPalContainer();
-        paypalButtonInstance = paypal.Buttons({
+        if (typeof paypalSubscription === 'undefined') {
+            showPayPalError('PayPal subscription checkout is unavailable right now.');
+            return;
+        }
+        paypalButtonInstance = paypalSubscription.Buttons({
             style: {
                 shape: 'rect', color: 'gold', layout: 'vertical', label: 'subscribe',
             },
@@ -461,7 +467,11 @@ ob_start();
     // ── Render PayPal One-Time Top-Up Button ──────────────────
     function renderPayPalTopup(packKey, credits, price) {
         clearPayPalContainer();
-        paypalButtonInstance = paypal.Buttons({
+        if (typeof paypalTopup === 'undefined') {
+            showPayPalError('PayPal checkout is unavailable right now.');
+            return;
+        }
+        paypalButtonInstance = paypalTopup.Buttons({
             style: {
                 shape: 'rect', color: 'gold', layout: 'vertical', label: 'pay',
             },
