@@ -279,8 +279,8 @@ $csrfToken      = \Middleware\CSRFMiddleware::generate();
 $paypalSDKUrl   = PAYPAL_MODE === 'live'          
     ? 'https://www.paypal.com/sdk/js'
     : 'https://www.sandbox.paypal.com/sdk/js';
-$paypalSubscriptionSdkUrl = $paypalSDKUrl . '?client-id=' . rawurlencode($paypalClientId) . '&vault=true&intent=subscription&components=buttons&currency=USD&data-namespace=paypalSubscription';
-$paypalTopupSdkUrl = $paypalSDKUrl . '?client-id=' . rawurlencode($paypalClientId) . '&intent=capture&components=buttons&currency=USD&data-namespace=paypalTopup';
+$paypalSubscriptionSdkUrl = $paypalSDKUrl . '?client-id=' . rawurlencode($paypalClientId) . '&vault=true&intent=subscription&components=buttons&currency=USD';
+$paypalTopupSdkUrl = $paypalSDKUrl . '?client-id=' . rawurlencode($paypalClientId) . '&intent=capture&components=buttons&currency=USD';
 ob_start();
 ?>
 
@@ -388,8 +388,10 @@ ob_start();
 </style>
 
 <script src="<?= htmlspecialchars($paypalSubscriptionSdkUrl, ENT_QUOTES, 'UTF-8') ?>"
+        data-namespace="paypalSubscription"
         data-sdk-integration-source="button-factory"></script>
 <script src="<?= htmlspecialchars($paypalTopupSdkUrl, ENT_QUOTES, 'UTF-8') ?>"
+        data-namespace="paypalTopup"
         data-sdk-integration-source="button-factory"></script>
 
 
