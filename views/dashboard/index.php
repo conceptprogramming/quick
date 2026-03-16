@@ -66,13 +66,24 @@ $creditBalance = (int) ($user['credits'] ?? 0);
 
 
 <div class="container py-5">
+    <section class="qcp-dashboard-hero mb-5">
+        <div>
+            <span class="qcp-dashboard-kicker">Workspace</span>
+            <h1 class="qcp-section-title mb-2">Upload once, then move straight into your tools.</h1>
+            <p class="text-muted mb-0"><?= htmlspecialchars($user['email']) ?> · <a href="<?= APP_URL ?>/plans" class="text-primary fw-600">Manage plan and top-ups</a></p>
+        </div>
+        <div class="qcp-dashboard-steps">
+            <div class="qcp-step-chip <?= $pdfReady ? 'is-done' : 'is-active' ?>"><span>1</span>Select PDF</div>
+            <div class="qcp-step-chip <?= $pdfReady ? 'is-done' : '' ?>"><span>2</span>Process PDF</div>
+            <div class="qcp-step-chip <?= $pdfReady ? 'is-active' : '' ?>"><span>3</span>Use tools</div>
+        </div>
+    </section>
 
-    <!-- Welcome -->
-    <div class="mb-5">
-        <h1 class="qcp-section-title mb-1">Welcome back 👋</h1>
-        <p class="text-muted"><?= htmlspecialchars($user['email']) ?> · <a href="<?= APP_URL ?>/plans"
-                class="text-primary fw-500">Upgrade Plan</a></p>
-    </div>
+    <?php if ($walletAccessMessage): ?>
+        <div class="alert alert-warning qcp-wallet-alert mb-4">
+            <i class="bi bi-lock-fill me-2"></i><?= htmlspecialchars($walletAccessMessage) ?>
+        </div>
+    <?php endif; ?>
 
     <!-- Stats -->
     <div class="row g-4 mb-5">
@@ -101,7 +112,7 @@ $stats = [
     </div>
 
     <!-- Upload Card -->
-    <div class="qcp-upload-card mb-5">
+    <div id="uploadSection" class="qcp-upload-card mb-5" style="<?= $pdfReady ? 'display:none' : '' ?>">
         <div class="qcp-upload-shell" id="uploadArea">
             <div class="qcp-upload-orb"></div>
             <div class="qcp-upload-panel" id="dropZone">
@@ -127,14 +138,23 @@ $stats = [
     </div>
 
     <!-- Tool Cards (shown after PDF ready) -->
-    <div id="toolCards" style="display:none">
-        <h5 class="fw-700 mb-4 text-dark">Choose a Tool</h5>
+    <div id="toolCards" style="<?= $pdfReady ? '' : 'display:none' ?>">
+        <div class="qcp-tools-head">
+            <div>
+                <span class="qcp-dashboard-kicker">PDF Ready</span>
+                <h5 class="fw-800 mb-1 text-dark">Choose what to do next</h5>
+                <p class="text-muted mb-0">Your processed document is ready. Jump into the workflow you need.</p>
+            </div>
+            <button type="button" class="btn btn-outline-secondary" onclick="resetUpload()">
+                <i class="bi bi-arrow-counterclockwise me-1"></i>Upload another PDF
+            </button>
+        </div>
         <div class="row g-4">
             <?php
             $tools = [
                 ['bi-chat-dots-fill', 'purple', 'Chat with PDF', 'Ask questions and get instant AI answers from your document.', '/chat'],
-                ['bi-file-text-fill', 'blue', 'Summarize', 'Get a clean structured summary of your entire PDF.', '/summary'],
-                ['bi-ui-checks-grid', 'orange', 'Take Quiz', 'Play an interactive quiz with timer and live scoring.', '/quiz'],
+                ['bi-file-text-fill', 'blue', 'Summarize', 'Generate structured summaries and condensed notes.', '/summary'],
+                ['bi-ui-checks-grid', 'orange', 'Take Quiz', 'Turn the PDF into a focused quiz with end-of-run review.', '/quiz'],
             ];
 
             foreach ($tools as [$icon, $color, $title, $desc, $url]): ?>
@@ -166,6 +186,92 @@ $processUrl = $appUrl . '/pdf/process';
 ob_start();
 ?>
 <style>
+    .qcp-dashboard-hero {
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-end;
+        gap: 24px;
+        padding: 28px 30px;
+        border-radius: 26px;
+        border: 1px solid rgba(108, 71, 255, .12);
+        background:
+            radial-gradient(circle at top left, rgba(108, 71, 255, .10), transparent 34%),
+            radial-gradient(circle at bottom right, rgba(20, 184, 166, .10), transparent 30%),
+            linear-gradient(180deg, #fff, #f8faff);
+        box-shadow: 0 18px 46px rgba(15, 23, 42, .06);
+    }
+
+    .qcp-dashboard-kicker {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        padding: 6px 12px;
+        border-radius: 999px;
+        background: rgba(108, 71, 255, .08);
+        color: var(--qcp-primary);
+        font-size: .78rem;
+        font-weight: 700;
+        margin-bottom: 14px;
+        text-transform: uppercase;
+        letter-spacing: .08em;
+    }
+
+    .qcp-dashboard-steps {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 10px;
+        justify-content: flex-end;
+    }
+
+    .qcp-step-chip {
+        display: inline-flex;
+        align-items: center;
+        gap: 10px;
+        padding: 10px 14px;
+        border-radius: 999px;
+        border: 1px solid var(--qcp-border);
+        background: #fff;
+        color: #64748b;
+        font-size: .86rem;
+        font-weight: 700;
+    }
+
+    .qcp-step-chip span {
+        width: 24px;
+        height: 24px;
+        border-radius: 50%;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        background: #eef2ff;
+        color: var(--qcp-primary);
+        font-size: .78rem;
+    }
+
+    .qcp-step-chip.is-active {
+        border-color: rgba(108, 71, 255, .28);
+        color: #1e293b;
+        box-shadow: 0 10px 28px rgba(108, 71, 255, .10);
+    }
+
+    .qcp-step-chip.is-done {
+        background: #f0fdf4;
+        border-color: #bbf7d0;
+        color: #166534;
+    }
+
+    .qcp-step-chip.is-done span {
+        background: #16a34a;
+        color: #fff;
+    }
+
+    .qcp-wallet-alert {
+        border-radius: 16px;
+        border: 1px solid #fcd34d;
+        background: #fffbeb;
+        color: #92400e;
+    }
+
     .qcp-upload-icon {
         width: 84px;
         height: 84px;
@@ -340,6 +446,14 @@ ob_start();
         color: var(--qcp-primary);
     }
 
+    .qcp-tools-head {
+        display: flex;
+        align-items: end;
+        justify-content: space-between;
+        gap: 18px;
+        margin-bottom: 20px;
+    }
+
     .qcp-profile-nav-btn {
         display: flex;
         align-items: center;
@@ -405,6 +519,12 @@ ob_start();
     .text-purple { color: var(--qcp-primary) !important; }
 
     @media (max-width: 640px) {
+        .qcp-dashboard-hero,
+        .qcp-tools-head {
+            flex-direction: column;
+            align-items: stretch;
+        }
+
         .qcp-upload-panel {
             padding: 40px 20px;
         }
@@ -519,22 +639,9 @@ ob_start();
     }
 
     function showReady(pages) {
-        setUploadArea(
-            '<div class="qcp-processing-stage">' +
-            '<div class="qcp-processing-pill"><i class="bi bi-check-circle-fill text-success"></i> PDF Ready</div>' +
-            '<h4 class="fw-800 text-dark mb-2">Your document is ready for chat, summaries, and quizzes</h4>' +
-            '<p class="text-muted mb-3">Processed ' + pages + ' page(s) successfully. Pick a tool below to continue.</p>' +
-            '<div class="qcp-upload-file-meta">' +
-                '<span><i class="bi bi-check2-circle text-success me-1"></i>OCR complete</span>' +
-                '<span><i class="bi bi-lightning-charge-fill text-warning me-1"></i>AI-ready</span>' +
-            '</div>' +
-            '<div class="mt-4">' +
-            '<button onclick="resetUpload()" class="btn btn-outline-secondary btn-sm">' +
-            '<i class="bi bi-arrow-counterclockwise me-1"></i>Upload another PDF</button>' +
-            '</div>' +
-            '</div>'
-        );
+        document.getElementById('uploadSection').style.display = 'none';
         document.getElementById('toolCards').style.display = 'block';
+        window.scrollTo({ top: document.getElementById('toolCards').offsetTop - 100, behavior: 'smooth' });
     }
 
     function showError(msg) {

@@ -59,7 +59,8 @@ class QuizController
             $plan = $user['plan'] ?? 'free';
 
             if (!$this->creditService->hasCredits($userId, 'quiz')) {
-                echo json_encode(['success' => false, 'message' => 'Not enough credits.']);
+                $walletMessage = $this->creditService->getWalletAccessMessage($userId);
+                echo json_encode(['success' => false, 'message' => $walletMessage ?: 'Not enough credits.']);
                 exit;
             }
             if (!$this->creditService->withinPlanLimit($userId, $plan, 'quizzes')) {
@@ -111,7 +112,8 @@ class QuizController
             $plan = $user['plan'] ?? 'free';
 
             if (!$this->creditService->hasCredits($userId, 'quiz')) {
-                echo json_encode(['success' => false, 'message' => 'Not enough credits.']);
+                $walletMessage = $this->creditService->getWalletAccessMessage($userId);
+                echo json_encode(['success' => false, 'message' => $walletMessage ?: 'Not enough credits.']);
                 exit;
             }
             if (!$this->creditService->withinPlanLimit($userId, $plan, 'quizzes')) {

@@ -22,9 +22,72 @@ class CreditService
         'quizzes' => 'bonus_quizzes',
     ];
 
+    public function canUseWalletCredits(int $userId): bool
+    {
+        $db = Database::getInstance();
+
+        $st = $db->prepare("SELECT plan FROM users WHERE id = :id LIMIT 1");
+        $st->execute(['id' => $userId]);
+        $plan = $st->fetchColumn() ?: 'free';
+
+        if ($plan !== 'free') {
+            return true;
+        }
+
+        $st = $db->prepare("
+            SELECT renews_at, status
+            FROM subscriptions
+            WHERE user_id = :uid
+            ORDER BY id DESC
+            LIMIT 1
+        ");
+        $st->execute(['uid' => $userId]);
+        $subscription = $st->fetch();
+
+        if (!$subscription) {
+            return true;
+        }
+
+        $renewsAt = $subscription['renews_at'] ?? null;
+        $status = $subscription['status'] ?? '';
+
+        if ($renewsAt && strtotime($renewsAt) > time() && in_array($status, ['active', 'cancelled'], true)) {
+            return true;
+        }
+
+        $st = $db->prepare("
+            SELECT COUNT(*)
+            FROM payments
+            WHERE user_id = :uid AND type = 'topup' AND status = 'completed'
+        ");
+        $st->execute(['uid' => $userId]);
+        $hasTopupHistory = (int) $st->fetchColumn() > 0;
+
+        if (!$hasTopupHistory) {
+            return true;
+        }
+
+        $st = $db->prepare("SELECT credits FROM users WHERE id = :id LIMIT 1");
+        $st->execute(['id' => $userId]);
+        $balance = (int) $st->fetchColumn();
+
+        return $balance <= 0;
+    }
+
+    public function getWalletAccessMessage(int $userId): ?string
+    {
+        return $this->canUseWalletCredits($userId)
+            ? null
+            : 'Your top-up credits are locked because your paid subscription has ended. Renew a paid plan to use wallet credits again.';
+    }
+
     // ── Check credits ─────────────────────────────────────────
     public function hasCredits(int $userId, string $feature, int $qty = 1): bool
     {
+        if (!$this->canUseWalletCredits($userId)) {
+            return false;
+        }
+
         $cost = (CREDIT_COSTS[$feature] ?? 1) * $qty;
         $db = Database::getInstance();
         $st = $db->prepare("SELECT credits FROM users WHERE id = :id LIMIT 1");

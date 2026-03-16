@@ -203,7 +203,8 @@ $st = $db->prepare("SELECT plan FROM users WHERE id = :id LIMIT 1");
             $plan = $user['plan'] ?? 'free';
 
             if (!$this->creditService->hasCredits($userId, 'chat')) {
-                echo json_encode(['success' => false, 'message' => 'Not enough credits. Please top up.']);
+                $walletMessage = $this->creditService->getWalletAccessMessage($userId);
+                echo json_encode(['success' => false, 'message' => $walletMessage ?: 'Not enough credits. Please top up.']);
                 exit;
             }
 
@@ -264,7 +265,8 @@ $st = $db->prepare("SELECT plan FROM users WHERE id = :id LIMIT 1");
             $plan = $user['plan'] ?? 'free';
 
             if (!$this->creditService->hasCredits($userId, 'summary')) {
-                echo json_encode(['success' => false, 'message' => 'Not enough credits to generate a summary.']);
+                $walletMessage = $this->creditService->getWalletAccessMessage($userId);
+                echo json_encode(['success' => false, 'message' => $walletMessage ?: 'Not enough credits to generate a summary.']);
                 exit;
             }
             if (!$this->creditService->withinPlanLimit($userId, $plan, 'summaries')) {
@@ -331,7 +333,8 @@ $st = $db->prepare("SELECT plan FROM users WHERE id = :id LIMIT 1");
             $plan = $user['plan'] ?? 'free';
 
             if (!$this->creditService->hasCredits($userId, 'qa')) {
-                echo json_encode(['success' => false, 'message' => 'Not enough credits.']);
+                $walletMessage = $this->creditService->getWalletAccessMessage($userId);
+                echo json_encode(['success' => false, 'message' => $walletMessage ?: 'Not enough credits.']);
                 exit;
             }
 

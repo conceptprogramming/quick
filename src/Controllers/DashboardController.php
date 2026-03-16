@@ -3,14 +3,17 @@ namespace Controllers;
 
 use Database;
 use Core\Session;
+use Services\CreditService;
 
 class DashboardController
 {
     private Session $session;
+    private CreditService $creditService;
 
     public function __construct()
     {
         $this->session = new Session();
+        $this->creditService = new CreditService();
     }
 
     public function index(): void
@@ -55,13 +58,16 @@ class DashboardController
         $planBenefits = $plan['benefits'];
 
         // ── Effective limits = plan limit + carried bonus ─────
-       $effectiveLimits = [
+        $effectiveLimits = [
     'pdfs_per_month' => $planBenefits['pdfs_per_month'] + (int)$usage['bonus_pdfs'],
     'chat_messages'  => $planBenefits['chat_messages']  + (int)$usage['bonus_chats'],
     'summaries'      => $planBenefits['summaries']      + (int)$usage['bonus_summaries'],
     'qa_questions'   => $planBenefits['qa_questions'],
     'quizzes'        => $planBenefits['quizzes']        + (int)$usage['bonus_quizzes'],
 ];
+
+        $pdfReady = !empty($_SESSION['pdf_processed']);
+        $walletAccessMessage = $this->creditService->getWalletAccessMessage($userId);
 
 
         require __DIR__ . '/../../views/dashboard/index.php';
