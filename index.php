@@ -39,6 +39,7 @@ $routes = [
         '/verify' => ['Controllers\AuthController', 'verifyOTP'],
         '/pdf/upload' => ['Controllers\PDFController', 'upload'],
         '/pdf/process' => ['Controllers\PDFController', 'process'],
+        '/pdf/reset' => ['Controllers\PDFController', 'reset'],
         '/pdf/chat' => ['Controllers\PDFController', 'chat'],
         '/pdf/summary' => ['Controllers\PDFController', 'summary'],
         '/quiz/mcq' => ['Controllers\QuizController', 'mcq'],

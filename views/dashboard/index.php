@@ -183,6 +183,7 @@ $stats = [
 $content = ob_get_clean();
 $uploadUrl = $appUrl . '/pdf/upload';
 $processUrl = $appUrl . '/pdf/process';
+$resetUrl = $appUrl . '/pdf/reset';
 ob_start();
 ?>
 <style>
@@ -538,6 +539,7 @@ ob_start();
 <script>
     const UPLOAD_URL = '<?= $uploadUrl ?>';
     const PROCESS_URL = '<?= $processUrl ?>';
+    const RESET_URL = '<?= $resetUrl ?>';
     const pdfInput = document.getElementById('pdfInput');
     const dropZone = document.getElementById('dropZone');
 
@@ -659,7 +661,26 @@ ob_start();
         document.getElementById('uploadArea').innerHTML = '<div class="py-3 text-center">' + html + '</div>';
     }
 
-    function resetUpload() { location.reload(); }
+    function resetUpload() {
+        const csrf = document.querySelector('meta[name="csrf"]')?.content || '';
+
+        fetch(RESET_URL, {
+            method: 'POST',
+            headers: {
+                'X-CSRF-Token': csrf
+            }
+        })
+            .then(function (response) { return response.json(); })
+            .then(function (result) {
+                if (!result.success) {
+                    throw new Error(result.message || 'Failed to reset PDF session.');
+                }
+                window.location.href = '<?= APP_URL ?>/dashboard';
+            })
+            .catch(function (error) {
+                alert(error.message || 'Failed to reset PDF session.');
+            });
+    }
 
     function formatBytes(bytes) {
         if (!bytes) return '0 B';

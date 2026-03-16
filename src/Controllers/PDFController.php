@@ -381,4 +381,22 @@ $st = $db->prepare("SELECT plan FROM users WHERE id = :id LIMIT 1");
             'session_id' => session_id(),
         ]);
     }
+
+    public function reset(): void
+    {
+        if (!$this->session->userId()) {
+            Response::json(['success' => false, 'message' => 'Not authenticated'], 401);
+        }
+
+        $this->pdfService->cleanup();
+        unset(
+            $_SESSION['pdf_uploaded'],
+            $_SESSION['pdf_page_count'],
+            $_SESSION['pdf_plan'],
+            $_SESSION['pdf_text'],
+            $_SESSION['pdf_processed']
+        );
+
+        Response::json(['success' => true, 'message' => 'PDF session cleared.']);
+    }
 }
