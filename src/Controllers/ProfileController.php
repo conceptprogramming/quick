@@ -82,17 +82,18 @@ class ProfileController
             SELECT *
             FROM subscriptions
             WHERE user_id = :uid
-              AND (
-                    paypal_sub_id = :paypal_sub_id_match
-                    OR :paypal_sub_id_empty = ''
-                  )
-            ORDER BY updated_at DESC, id DESC
+            ORDER BY
+                CASE
+                    WHEN paypal_sub_id = :paypal_sub_id_match THEN 0
+                    ELSE 1
+                END,
+                updated_at DESC,
+                id DESC
             LIMIT 1
         ");
         $st->execute([
             'uid' => $userId,
             'paypal_sub_id_match' => (string) ($user['paypal_subscription_id'] ?? ''),
-            'paypal_sub_id_empty' => (string) ($user['paypal_subscription_id'] ?? ''),
         ]);
         $subscription = $st->fetch() ?: null;
 

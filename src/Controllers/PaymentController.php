@@ -274,6 +274,21 @@ class PaymentController
                 $this->respond(['success' => false, 'message' => 'Could not connect to PayPal.']);
             }
 
+            $paypalSub = $this->getPayPalSubscription($token, $subId);
+            if ($paypalSub) {
+                $startedAt = $this->formatPayPalTime($paypalSub['start_time'] ?? null) ?? gmdate('Y-m-d H:i:s');
+                $renewsAt = $this->formatPayPalTime($paypalSub['billing_info']['next_billing_time'] ?? null);
+                $this->upsertSubscriptionRow(
+                    $db,
+                    $userId,
+                    (string) ($user['plan'] ?? 'free'),
+                    $subId,
+                    'cancelled',
+                    $startedAt,
+                    $renewsAt
+                );
+            }
+
             if (!$this->cancelPayPalSubscription($token, $subId)) {
                 $this->respond(['success' => false, 'message' => 'PayPal could not cancel the subscription.']);
             }
@@ -708,6 +723,10 @@ class PaymentController
                     plan = :plan,
                     status = :status,
                     renews_at = :renews,
+                    cancelled_at = CASE
+                        WHEN :status_cancelled = 'cancelled' THEN COALESCE(cancelled_at, UTC_TIMESTAMP())
+                        ELSE NULL
+                    END,
                     updated_at = UTC_TIMESTAMP()
                 WHERE id = :id
             ")->execute([
@@ -715,6 +734,7 @@ class PaymentController
                 'plan'   => $plan,
                 'status' => $status,
                 'renews' => $renewsAt,
+                'status_cancelled' => $status,
                 'id'     => $existingId,
             ]);
             return;
@@ -722,9 +742,9 @@ class PaymentController
 
         $db->prepare("
             INSERT INTO subscriptions
-                (user_id, plan, status, paypal_sub_id, started_at, renews_at, created_at, updated_at)
+                (user_id, plan, status, paypal_sub_id, started_at, renews_at, cancelled_at, created_at, updated_at)
             VALUES
-                (:uid, :plan, :status, :sub, :started, :renews, UTC_TIMESTAMP(), UTC_TIMESTAMP())
+                (:uid, :plan, :status, :sub, :started, :renews, :cancelled_at, UTC_TIMESTAMP(), UTC_TIMESTAMP())
         ")->execute([
             'uid'     => $userId,
             'plan'    => $plan,
@@ -732,6 +752,7 @@ class PaymentController
             'sub'     => $subId,
             'started' => $startedAt,
             'renews'  => $renewsAt,
+            'cancelled_at' => $status === 'cancelled' ? gmdate('Y-m-d H:i:s') : null,
         ]);
     }
 
