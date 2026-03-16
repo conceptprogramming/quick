@@ -6,10 +6,12 @@ $userPlanKey = $user['plan'] ?? 'free';
 $userCredits = (int) ($user['credits'] ?? 0);
 $creditBalance = $userCredits;
 $paypalBrandName = APP_NAME;
+$hasSubscriptionRecord = !empty($subscription);
 $subscriptionStatus = $subscription['status'] ?? null;
 $subscriptionCancelled = ($subscriptionStatus === 'cancelled') || !empty($subscription['cancelled_at']);
 $subscriptionRenewsAt = $subscription['renews_at'] ?? null;
-$canCancelSubscription = $userPlanKey !== 'free'
+$canCancelSubscription = $hasSubscriptionRecord
+    && $userPlanKey !== 'free'
     && !empty($user['paypal_subscription_id'])
     && !$subscriptionCancelled;
 ?>
@@ -70,9 +72,9 @@ $canCancelSubscription = $userPlanKey !== 'free'
             <?php if ($userPlanKey !== 'free'): ?>
                 <div class="ms-auto">
                     <div class="d-flex flex-column align-items-end gap-2">
-                        <span class="badge <?= $subscriptionCancelled ? 'bg-warning text-dark' : 'bg-success' ?> px-3 py-2">
-                            <i class="bi <?= $subscriptionCancelled ? 'bi-pause-circle-fill' : 'bi-check-circle-fill' ?> me-1"></i>
-                            <?= $subscriptionCancelled ? 'Subscription Cancelled' : 'Active Subscription' ?>
+                        <span class="badge <?= (!$hasSubscriptionRecord || $subscriptionCancelled) ? 'bg-warning text-dark' : 'bg-success' ?> px-3 py-2">
+                            <i class="bi <?= (!$hasSubscriptionRecord || $subscriptionCancelled) ? 'bi-pause-circle-fill' : 'bi-check-circle-fill' ?> me-1"></i>
+                            <?= !$hasSubscriptionRecord ? 'Subscription Not Synced' : ($subscriptionCancelled ? 'Subscription Cancelled' : 'Active Subscription') ?>
                         </span>
                         <?php if ($canCancelSubscription): ?>
                             <button class="btn btn-outline-danger btn-sm" id="cancelSubscriptionBtn">
@@ -82,6 +84,10 @@ $canCancelSubscription = $userPlanKey !== 'free'
                             <div class="text-muted small">
                                 Current plan active until
                                 <?= $subscriptionRenewsAt ? htmlspecialchars(date('M j, Y', strtotime($subscriptionRenewsAt))) : 'period end' ?>
+                            </div>
+                        <?php elseif (!$hasSubscriptionRecord): ?>
+                            <div class="text-muted small">
+                                Subscription status is missing in the database for this account.
                             </div>
                         <?php endif; ?>
                     </div>

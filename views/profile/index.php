@@ -7,15 +7,19 @@ $userCredits = (int) ($user['credits'] ?? 0);
 $creditBalance = $userCredits;
 $joinedDate = date('M d, Y', strtotime($user['created_at']));
 $monthLabel = date('F Y');
+$hasSubscriptionRecord = !empty($subscription);
 $subscriptionStatus = $subscription['status'] ?? null;
 $subscriptionCancelled = ($subscriptionStatus === 'cancelled') || !empty($subscription['cancelled_at']);
 $subscriptionRenewsAt = $subscription['renews_at'] ?? null;
-$canCancelSubscription = $userPlanKey !== 'free'
+$canCancelSubscription = $hasSubscriptionRecord
+    && $userPlanKey !== 'free'
     && !empty($user['paypal_subscription_id'])
     && !$subscriptionCancelled;
-$subscriptionLabel = $subscriptionCancelled
+$subscriptionLabel = !$hasSubscriptionRecord
+    ? 'Subscription record missing'
+    : ($subscriptionCancelled
     ? 'Subscription cancelled'
-    : ($userPlanKey !== 'free' ? 'Subscription active' : 'No paid subscription');
+    : ($userPlanKey !== 'free' ? 'Subscription active' : 'No paid subscription'));
 ?>
 
 <!-- Navbar -->
@@ -128,11 +132,15 @@ $subscriptionLabel = $subscriptionCancelled
                                     ? '$' . number_format($plan['price'], 2) . '/month'
                                     : 'Free forever' ?>
                             </div>
-                            <?php if ($userPlanKey !== 'free'): ?>
+                            <?php if ($userPlanKey !== 'free' && $hasSubscriptionRecord): ?>
                                 <div class="small mt-2 <?= $subscriptionCancelled ? 'text-warning' : 'text-success' ?>">
                                     <?= $subscriptionCancelled
                                         ? 'Subscription cancelled. Current plan stays active until ' . ($subscriptionRenewsAt ? date('M j, Y', strtotime($subscriptionRenewsAt)) : 'period end')
                                         : 'Subscription active' ?>
+                                </div>
+                            <?php elseif ($userPlanKey !== 'free'): ?>
+                                <div class="small mt-2 text-warning">
+                                    Subscription status could not be verified from the database.
                                 </div>
                             <?php endif; ?>
                         </div>
@@ -226,7 +234,7 @@ $subscriptionLabel = $subscriptionCancelled
                         <div class="qcp-info-row">
                             <span class="qcp-info-label">Subscription Status</span>
                             <span class="qcp-info-value">
-                                <span class="badge <?= $subscriptionCancelled ? 'bg-warning text-dark' : 'bg-success' ?> px-2">
+                                <span class="badge <?= (!$hasSubscriptionRecord || $subscriptionCancelled) ? 'bg-warning text-dark' : 'bg-success' ?> px-2">
                                     <?= htmlspecialchars($subscriptionLabel) ?>
                                 </span>
                             </span>
