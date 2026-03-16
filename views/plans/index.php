@@ -5,6 +5,7 @@ $appUrl = APP_URL;
 $userPlanKey = $user['plan'] ?? 'free';
 $userCredits = (int) ($user['credits'] ?? 0);
 $creditBalance = $userCredits;
+$paypalBrandName = APP_NAME;
 $subscriptionStatus = $subscription['status'] ?? null;
 $subscriptionRenewsAt = $subscription['renews_at'] ?? null;
 $canCancelSubscription = $userPlanKey !== 'free'
@@ -419,6 +420,8 @@ ob_start();
 
 <script>
     const CSRF = '<?= $csrfToken ?>';
+    const PAYPAL_BRAND_NAME = <?= json_encode($paypalBrandName) ?>;
+    const CURRENT_USER_ID = <?= (int) ($user['id'] ?? 0) ?>;
     let paypalButtonInstance = null;
 
     // ── Plan subscribe ────────────────────────────────────────
@@ -476,7 +479,15 @@ ob_start();
                 shape: 'rect', color: 'gold', layout: 'vertical', label: 'subscribe',
             },
             createSubscription: function (data, actions) {
-                return actions.subscription.create({ plan_id: planId });
+                return actions.subscription.create({
+                    plan_id: planId,
+                    custom_id: String(CURRENT_USER_ID),
+                    application_context: {
+                        brand_name: PAYPAL_BRAND_NAME,
+                        shipping_preference: 'NO_SHIPPING',
+                        user_action: 'SUBSCRIBE_NOW'
+                    }
+                });
             },
             onApprove: function (data) {
                 handleSuccess({
@@ -512,6 +523,11 @@ ob_start();
                         amount: { value: price.toFixed(2) },
                         description: label + ' - ' + units + ' ' + unitLabel,
                     }],
+                    application_context: {
+                        brand_name: PAYPAL_BRAND_NAME,
+                        shipping_preference: 'NO_SHIPPING',
+                        user_action: 'PAY_NOW'
+                    }
                 });
             },
             onApprove: function (data, actions) {

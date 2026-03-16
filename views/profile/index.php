@@ -12,6 +12,9 @@ $subscriptionRenewsAt = $subscription['renews_at'] ?? null;
 $canCancelSubscription = $userPlanKey !== 'free'
     && !empty($user['paypal_subscription_id'])
     && $subscriptionStatus !== 'cancelled';
+$subscriptionLabel = $subscriptionStatus === 'cancelled'
+    ? 'Renewal cancelled'
+    : ($userPlanKey !== 'free' ? 'Subscription active' : 'No paid subscription');
 ?>
 
 <!-- Navbar -->
@@ -211,13 +214,23 @@ $canCancelSubscription = $userPlanKey !== 'free'
                         </span>
                     </div>
                     <div class="qcp-info-row">
-                        <span class="qcp-info-label">Status</span>
+                        <span class="qcp-info-label">Account Status</span>
                         <span class="qcp-info-value">
                             <span class="badge <?= $user['status'] === 'active' ? 'bg-success' : 'bg-danger' ?> px-2">
                                 <?= ucfirst($user['status']) ?>
                             </span>
                         </span>
                     </div>
+                    <?php if ($userPlanKey !== 'free'): ?>
+                        <div class="qcp-info-row">
+                            <span class="qcp-info-label">Subscription Status</span>
+                            <span class="qcp-info-value">
+                                <span class="badge <?= $subscriptionStatus === 'cancelled' ? 'bg-warning text-dark' : 'bg-success' ?> px-2">
+                                    <?= htmlspecialchars($subscriptionLabel) ?>
+                                </span>
+                            </span>
+                        </div>
+                    <?php endif; ?>
                     <?php if ($user['paypal_subscription_id']): ?>
                         <div class="qcp-info-row">
                             <span class="qcp-info-label">Subscription</span>

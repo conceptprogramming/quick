@@ -82,10 +82,17 @@ class ProfileController
             SELECT *
             FROM subscriptions
             WHERE user_id = :uid
-            ORDER BY created_at DESC, id DESC
+              AND (
+                    paypal_sub_id = :paypal_sub_id
+                    OR :paypal_sub_id = ''
+                  )
+            ORDER BY updated_at DESC, id DESC
             LIMIT 1
         ");
-        $st->execute(['uid' => $userId]);
+        $st->execute([
+            'uid' => $userId,
+            'paypal_sub_id' => (string) ($user['paypal_subscription_id'] ?? ''),
+        ]);
         $subscription = $st->fetch() ?: null;
 
         require __DIR__ . '/../../views/profile/index.php';
