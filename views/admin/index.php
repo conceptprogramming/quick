@@ -298,12 +298,27 @@ $planColors = [
                 <!-- User Table -->
                 <div class="admin-card">
                     <div class="d-flex align-items-center justify-content-between gap-3 mb-3 flex-wrap">
-                        <h6 class="fw-700 mb-0">
-                            <?= htmlspecialchars($sectionTitle) ?>
-                        </h6>
-                        <span class="text-muted small">
-                            20 records per page
-                        </span>
+                        <div>
+                            <h6 class="fw-700 mb-1">
+                                <?= htmlspecialchars($sectionTitle) ?>
+                            </h6>
+                            <span class="text-muted small">
+                                20 records per page
+                            </span>
+                        </div>
+                        <form class="d-flex align-items-center gap-2 flex-wrap" method="GET" action="<?= $listingPath ?>">
+                            <input type="text" name="q" value="<?= $search ?>" class="admin-search"
+                                placeholder="Search by email..." style="width:260px" />
+                            <button type="submit" class="btn btn-sm"
+                                style="background:var(--qcp-gradient);color:#fff;border-radius:8px;font-weight:600">
+                                <i class="bi bi-search me-1"></i>Search
+                            </button>
+                            <?php if ($search !== ''): ?>
+                                <a href="<?= $listingPath ?>" class="btn btn-sm btn-outline-secondary" style="border-radius:8px">
+                                    Clear
+                                </a>
+                            <?php endif; ?>
+                        </form>
                     </div>
 
                     <div class="table-responsive">
