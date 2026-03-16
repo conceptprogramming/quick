@@ -1038,6 +1038,13 @@ class PaymentController
 
     private function cancelPayPalSubscription(string $token, string $subId): bool
     {
+        $subscription = $this->getPayPalSubscription($token, $subId);
+        $currentStatus = strtoupper((string) ($subscription['status'] ?? ''));
+
+        if (in_array($currentStatus, ['CANCELLED', 'EXPIRED'], true)) {
+            return true;
+        }
+
         $payload = json_encode(['reason' => 'Cancelled by subscriber from QuickChatPDF']);
         $ch = curl_init(PAYPAL_API_BASE . '/v1/billing/subscriptions/' . $subId . '/cancel');
         curl_setopt_array($ch, [
@@ -1050,10 +1057,40 @@ class PaymentController
                 'Content-Type: application/json',
             ],
         ]);
-        curl_exec($ch);
+        $res = curl_exec($ch);
         $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+        $curlError = curl_error($ch);
         curl_close($ch);
 
-        return $httpCode === 204;
+        if ($httpCode === 204) {
+            return true;
+        }
+
+        $latest = $this->getPayPalSubscription($token, $subId);
+        $latestStatus = strtoupper((string) ($latest['status'] ?? ''));
+
+        if (in_array($latestStatus, ['CANCELLED', 'EXPIRED'], true)) {
+            return true;
+        }
+
+        $errorSummary = 'HTTP ' . $httpCode;
+        if ($curlError) {
+            $errorSummary .= ' cURL: ' . $curlError;
+        }
+        if ($res) {
+            $decoded = json_decode($res, true);
+            if (is_array($decoded)) {
+                $name = $decoded['name'] ?? '';
+                $message = $decoded['message'] ?? '';
+                $details = $decoded['details'][0]['description'] ?? '';
+                $errorSummary .= ' PayPal: ' . trim(implode(' | ', array_filter([$name, $message, $details])));
+            } else {
+                $errorSummary .= ' Response: ' . substr(trim($res), 0, 300);
+            }
+        }
+
+        error_log('[PayPal Cancel Subscription] ' . $subId . ' => ' . $errorSummary);
+
+        return false;
     }
 }
