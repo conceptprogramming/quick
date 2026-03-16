@@ -29,18 +29,30 @@ class MailService
         return $this->send($to, $subject, $body);
     }
 
-    public function sendSubscriptionReceipt(string $to, string $planName, int $creditsAdded, float $amount, string $currency): bool
+    public function sendSubscriptionReceipt(
+        string $to,
+        string $planName,
+        int $creditsAdded,
+        float $amount,
+        string $currency,
+        ?string $startsAt = null,
+        ?string $endsAt = null
+    ): bool
     {
         $subject = 'Your QuickChatPDF Subscription Is Active';
         $body = $this->purchaseTemplate(
+            'Subscription',
             'Subscription Confirmed',
             "Your {$planName} plan is now active.",
             [
                 'Plan' => $planName,
                 'Amount' => strtoupper($currency) . ' ' . number_format($amount, 2),
                 'Credits Added' => number_format($creditsAdded) . ' credits',
+                'Starts' => $this->formatDisplayDate($startsAt),
+                'Ends' => $this->formatDisplayDate($endsAt),
                 'Access' => 'Your remaining wallet credits stay available.',
-            ]
+            ],
+            'Manage your plan anytime from your QuickChatPDF account.'
         );
         return $this->send($to, $subject, $body);
     }
@@ -49,6 +61,7 @@ class MailService
     {
         $subject = 'Your QuickChatPDF Add-On Purchase Is Ready';
         $body = $this->purchaseTemplate(
+            'Add-On',
             'Add-On Purchase Confirmed',
             "Your {$packName} purchase has been applied to your account.",
             [
@@ -56,7 +69,8 @@ class MailService
                 'Amount' => strtoupper($currency) . ' ' . number_format($amount, 2),
                 'Added' => $unitsLabel,
                 'Expiry' => str_contains(strtolower($unitsLabel), 'credits') ? 'Does not expire' : 'Applies to the current month',
-            ]
+            ],
+            'Open QuickChatPDF to start using your purchase right away.'
         );
         return $this->send($to, $subject, $body);
     }
@@ -196,13 +210,16 @@ class MailService
         HTML;
     }
 
-    private function purchaseTemplate(string $title, string $intro, array $items): string
+    private function purchaseTemplate(string $eyebrow, string $title, string $intro, array $items, string $footerNote): string
     {
         $rows = '';
         foreach ($items as $label => $value) {
+            if ($value === null || $value === '') {
+                continue;
+            }
             $rows .= '<tr>'
-                . '<td style="padding:10px 0;color:#64748b;font-size:14px;">' . htmlspecialchars($label, ENT_QUOTES, 'UTF-8') . '</td>'
-                . '<td style="padding:10px 0;color:#f1f5f9;font-size:14px;font-weight:700;text-align:right;">' . htmlspecialchars((string) $value, ENT_QUOTES, 'UTF-8') . '</td>'
+                . '<td style="padding:16px 0;color:#64748b;font-size:14px;border-bottom:1px solid #e2e8f0;">' . htmlspecialchars($label, ENT_QUOTES, 'UTF-8') . '</td>'
+                . '<td style="padding:16px 0;color:#0f172a;font-size:14px;font-weight:700;text-align:right;border-bottom:1px solid #e2e8f0;">' . htmlspecialchars((string) $value, ENT_QUOTES, 'UTF-8') . '</td>'
                 . '</tr>';
         }
 
@@ -215,31 +232,32 @@ class MailService
             <meta charset="UTF-8">
             <meta name="viewport" content="width=device-width,initial-scale=1">
         </head>
-        <body style="margin:0;padding:0;background:#0a0d14;font-family:'Inter',Arial,sans-serif;">
-            <table width="100%" cellpadding="0" cellspacing="0" style="background:#0a0d14;padding:40px 20px;">
+        <body style="margin:0;padding:0;background:#f3f6fb;font-family:'Inter',Arial,sans-serif;">
+            <table width="100%" cellpadding="0" cellspacing="0" style="background:#f3f6fb;padding:40px 20px;">
                 <tr><td align="center">
                     <table width="560" cellpadding="0" cellspacing="0"
-                        style="background:#131929;border-radius:16px;border:1px solid rgba(255,255,255,0.07);overflow:hidden;max-width:560px;width:100%;">
+                        style="background:#ffffff;border-radius:24px;border:1px solid #e2e8f0;overflow:hidden;max-width:560px;width:100%;box-shadow:0 20px 60px rgba(15,23,42,.08);">
                         <tr>
-                            <td style="background:linear-gradient(135deg,#7c5cfc,#c471ed);padding:32px;text-align:center;">
+                            <td style="background:linear-gradient(135deg,#6c47ff,#b05cff);padding:32px;text-align:center;">
                                 <div style="font-size:22px;font-weight:800;color:#fff;letter-spacing:-0.5px;">QuickChatPDF</div>
                             </td>
                         </tr>
                         <tr>
-                            <td style="padding:40px 36px;">
-                                <h2 style="color:#f1f5f9;font-size:20px;margin:0 0 10px;">{$title}</h2>
-                                <p style="color:#94a3b8;font-size:14px;margin:0 0 24px;line-height:1.6;">{$intro}</p>
-                                <table width="100%" cellpadding="0" cellspacing="0" style="border-top:1px solid rgba(255,255,255,0.07);border-bottom:1px solid rgba(255,255,255,0.07);">
+                            <td style="padding:40px 36px 28px;">
+                                <div style="display:inline-block;padding:8px 14px;border-radius:999px;background:#eef2ff;color:#6c47ff;font-size:12px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;margin-bottom:16px;">{$eyebrow}</div>
+                                <h2 style="color:#0f172a;font-size:20px;margin:0 0 10px;">{$title}</h2>
+                                <p style="color:#475569;font-size:14px;margin:0 0 24px;line-height:1.7;">{$intro}</p>
+                                <table width="100%" cellpadding="0" cellspacing="0" style="border-top:1px solid #e2e8f0;">
                                     {$rows}
                                 </table>
-                                <p style="color:#64748b;font-size:13px;margin:24px 0 0;line-height:1.6;">
-                                    Thank you for using QuickChatPDF.
+                                <p style="color:#475569;font-size:13px;margin:24px 0 0;line-height:1.7;">
+                                    {$footerNote}
                                 </p>
                             </td>
                         </tr>
                         <tr>
-                            <td style="padding:20px 36px;border-top:1px solid rgba(255,255,255,0.07);text-align:center;">
-                                <p style="color:#334155;font-size:12px;margin:0;">&copy; {$year} QuickChatPDF</p>
+                            <td style="padding:20px 36px;border-top:1px solid #e2e8f0;text-align:center;background:#f8fafc;">
+                                <p style="color:#64748b;font-size:12px;margin:0;">&copy; {$year} QuickChatPDF · support@quickchatpdf.com</p>
                             </td>
                         </tr>
                     </table>
@@ -248,5 +266,19 @@ class MailService
         </body>
         </html>
         HTML;
+    }
+
+    private function formatDisplayDate(?string $date): ?string
+    {
+        if (!$date) {
+            return null;
+        }
+
+        $timestamp = strtotime($date);
+        if (!$timestamp) {
+            return $date;
+        }
+
+        return date('M d, Y · g:i A', $timestamp) . ' UTC';
     }
 }

@@ -116,7 +116,15 @@ class PaymentController
             : 'Subscribed to ' . PLANS[$plan]['name'] . ' plan! ' . number_format($creditGain) . ' credits added.';
 
         if (!$alreadyProcessed) {
-            $this->sendSubscriptionEmail($user['email'] ?? '', PLANS[$plan]['name'], $creditGain, $amount > 0 ? $amount : (float) PLANS[$plan]['price'], $currency);
+            $this->sendSubscriptionEmail(
+                $user['email'] ?? '',
+                PLANS[$plan]['name'],
+                $creditGain,
+                $amount > 0 ? $amount : (float) PLANS[$plan]['price'],
+                $currency,
+                $startedAt,
+                $renewsAt
+            );
         }
 
         $this->respond([
@@ -951,14 +959,22 @@ class PaymentController
         exit;
     }
 
-    private function sendSubscriptionEmail(string $email, string $planName, int $creditsAdded, float $amount, string $currency): void
+    private function sendSubscriptionEmail(
+        string $email,
+        string $planName,
+        int $creditsAdded,
+        float $amount,
+        string $currency,
+        ?string $startsAt = null,
+        ?string $endsAt = null
+    ): void
     {
         if ($email === '') {
             return;
         }
 
         try {
-            (new MailService())->sendSubscriptionReceipt($email, $planName, $creditsAdded, $amount, $currency);
+            (new MailService())->sendSubscriptionReceipt($email, $planName, $creditsAdded, $amount, $currency, $startsAt, $endsAt);
         } catch (\Throwable $e) {
             error_log('[Mail Subscription] ' . $e->getMessage());
         }
