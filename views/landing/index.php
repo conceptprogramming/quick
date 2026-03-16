@@ -465,6 +465,7 @@ $appUrl = APP_URL;
                     <li><a href="#features">Features</a></li>
                     <li><a href="#pricing">Pricing</a></li>
                     <li><a href="#how-it-works">How it Works</a></li>
+                    <li><a href="<?= $appUrl ?>/faq">FAQ</a></li>
                     <li><a href="<?= $appUrl ?>/login">Get Started</a></li>
                 </ul>
             </div>
@@ -472,17 +473,18 @@ $appUrl = APP_URL;
             <div class="col-6 col-lg-2">
                 <h6 class="fw-700 mb-3 small text-uppercase" style="letter-spacing:.06em;color:#94a3b8">Legal</h6>
                 <ul class="qcp-footer-links list-unstyled">
-                    <li><a href="#">Privacy Policy</a></li>
-                    <li><a href="#">Terms of Service</a></li>
-                    <li><a href="#">Cookie Policy</a></li>
+                    <li><a href="<?= $appUrl ?>/privacy">Privacy Policy</a></li>
+                    <li><a href="<?= $appUrl ?>/terms">Terms of Service</a></li>
+                    <li><a href="<?= $appUrl ?>/privacy">Cookie Policy</a></li>
                 </ul>
             </div>
 
             <div class="col-6 col-lg-2">
                 <h6 class="fw-700 mb-3 small text-uppercase" style="letter-spacing:.06em;color:#94a3b8">Support</h6>
                 <ul class="qcp-footer-links list-unstyled">
-                    <li><a href="#faq">FAQ</a></li>
-                    <li><a href="mailto:hello@quickchatpdf.com">Contact</a></li>
+                    <li><a href="<?= $appUrl ?>/faq">FAQ Page</a></li>
+                    <li><a href="<?= $appUrl ?>/support">Support Page</a></li>
+                    <li><a href="mailto:support@quickchatpdf.com">support@quickchatpdf.com</a></li>
                 </ul>
             </div>
         </div>
@@ -507,6 +509,17 @@ $appUrl = APP_URL;
         </div>
     </div>
 </footer>
+
+<div class="qcp-cookie-banner" id="cookieBanner" hidden>
+    <div class="qcp-cookie-copy">
+        <span class="qcp-cookie-kicker">Cookie Notice</span>
+        <p>We use essential cookies for login, security, and session handling. You can accept or reject optional cookies. Read more in our <a href="<?= $appUrl ?>/privacy">Privacy Policy</a>.</p>
+    </div>
+    <div class="qcp-cookie-actions">
+        <button type="button" class="btn btn-outline-secondary" id="cookieRejectBtn">Essential Only</button>
+        <button type="button" class="btn btn-primary" id="cookieAcceptBtn">Accept</button>
+    </div>
+</div>
 
 <?php
 $content = ob_get_clean();
@@ -567,7 +580,100 @@ ob_start();
     html {
         scroll-behavior: smooth;
     }
+
+    .qcp-cookie-banner {
+        position: fixed;
+        left: 20px;
+        right: 20px;
+        bottom: 20px;
+        z-index: 1050;
+        display: flex;
+        align-items: end;
+        justify-content: space-between;
+        gap: 18px;
+        padding: 18px 20px;
+        border-radius: 22px;
+        border: 1px solid rgba(148, 163, 184, .2);
+        background: rgba(15, 23, 42, .94);
+        color: #e2e8f0;
+        box-shadow: 0 30px 60px rgba(15, 23, 42, .3);
+        backdrop-filter: blur(10px);
+    }
+
+    .qcp-cookie-kicker {
+        display: inline-flex;
+        padding: 6px 10px;
+        border-radius: 999px;
+        background: rgba(255,255,255,.08);
+        color: #c7d2fe;
+        font-size: .75rem;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: .08em;
+        margin-bottom: 8px;
+    }
+
+    .qcp-cookie-copy p {
+        margin: 0;
+        color: #cbd5e1;
+        font-size: .92rem;
+        line-height: 1.6;
+        max-width: 760px;
+    }
+
+    .qcp-cookie-copy a {
+        color: #fff;
+        font-weight: 700;
+    }
+
+    .qcp-cookie-actions {
+        display: flex;
+        gap: 10px;
+        flex-shrink: 0;
+    }
+
+    @media (max-width: 768px) {
+        .qcp-cookie-banner {
+            flex-direction: column;
+            align-items: stretch;
+        }
+
+        .qcp-cookie-actions {
+            width: 100%;
+        }
+
+        .qcp-cookie-actions .btn {
+            flex: 1;
+        }
+    }
 </style>
+<script>
+    (function () {
+        const storageKey = 'qcp_cookie_consent';
+        const banner = document.getElementById('cookieBanner');
+        const acceptBtn = document.getElementById('cookieAcceptBtn');
+        const rejectBtn = document.getElementById('cookieRejectBtn');
+
+        if (!banner || window.localStorage.getItem(storageKey)) {
+            return;
+        }
+
+        banner.hidden = false;
+
+        function saveConsent(value) {
+            window.localStorage.setItem(storageKey, value);
+            banner.hidden = true;
+        }
+
+        acceptBtn?.addEventListener('click', function () {
+            saveConsent('accepted');
+        });
+
+        rejectBtn?.addEventListener('click', function () {
+            saveConsent('essential');
+        });
+    })();
+</script>
 <?php
 $extraScripts = ob_get_clean();
 require __DIR__ . '/../layouts/base.php';

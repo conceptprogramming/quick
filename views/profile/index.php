@@ -251,6 +251,30 @@ $subscriptionLabel = !$hasSubscriptionRecord
                 </div>
             </div>
 
+            <div class="qcp-profile-card mt-4">
+                <div class="qcp-profile-card-header">
+                    <i class="bi bi-headset me-2" style="color:var(--qcp-primary)"></i>
+                    Support
+                </div>
+                <div class="p-4">
+                    <div class="qcp-info-row">
+                        <span class="qcp-info-label">General Support</span>
+                        <span class="qcp-info-value">
+                            <a href="mailto:support@quickchatpdf.com" class="text-decoration-none">support@quickchatpdf.com</a>
+                        </span>
+                    </div>
+                    <div class="qcp-info-row">
+                        <span class="qcp-info-label">Privacy Contact</span>
+                        <span class="qcp-info-value">
+                            <a href="mailto:privacy@quickchatpdf.com" class="text-decoration-none">privacy@quickchatpdf.com</a>
+                        </span>
+                    </div>
+                    <div class="small text-muted mt-3">
+                        Share your account email, the affected page, and any screenshot or exact error message so we can help faster.
+                    </div>
+                </div>
+            </div>
+
         </div>
 
         <!-- Right Column -->
@@ -268,10 +292,10 @@ $subscriptionLabel = !$hasSubscriptionRecord
                 <div class="p-4">
                     <?php
                     $usageItems = [
-                        ['PDFs Uploaded', $usage['pdfs_uploaded'] ?? 0, $plan['benefits']['pdfs_per_month'], 'bi-file-earmark-pdf-fill', 'text-danger'],
-                        ['Chat Messages', $usage['chat_messages'] ?? 0, $plan['benefits']['chat_messages'], 'bi-chat-dots-fill', 'text-primary'],
-                        ['Summaries', $usage['summaries'] ?? 0, $plan['benefits']['summaries'], 'bi-file-text-fill', 'text-blue'],
-                        ['Quizzes', $usage['quizzes'] ?? 0, $plan['benefits']['quizzes'], 'bi-ui-checks-grid', 'text-warning'],
+                        ['PDFs Uploaded', $usage['pdfs_uploaded'] ?? 0, $effectiveLimits['pdfs_per_month'], 'bi-file-earmark-pdf-fill', 'text-danger'],
+                        ['Chat Messages', $usage['chat_messages'] ?? 0, $effectiveLimits['chat_messages'], 'bi-chat-dots-fill', 'text-primary'],
+                        ['Summaries', $usage['summaries'] ?? 0, $effectiveLimits['summaries'], 'bi-file-text-fill', 'text-blue'],
+                        ['Quizzes', $usage['quizzes'] ?? 0, $effectiveLimits['quizzes'], 'bi-ui-checks-grid', 'text-warning'],
                     ];
                     foreach ($usageItems as [$label, $used, $limit, $icon, $color]):
                         $pct = $limit > 0 ? min(100, round(($used / $limit) * 100)) : 0;

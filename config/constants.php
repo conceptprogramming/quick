@@ -97,6 +97,8 @@ define('TOPUP_PACKS', [
 define('RATE_LIMITS', [
     'otp_send' => ['max' => 3, 'window' => 600],  // 3 per 10 min
     'otp_verify_block' => ['max' => 1, 'window' => 86400],  // block IP for 24 hours after OTP failures
+    'admin_login' => ['max' => 3, 'window' => 86400],  // 3 incorrect admin logins per 24 hours
+    'admin_login_block' => ['max' => 1, 'window' => 86400],  // block admin login IP for 24 hours
     'ai_request' => ['max' => 10, 'window' => 60],   // 10 per min
     'upload' => ['max' => 5, 'window' => 60],   // 5 uploads per min
 ]);

@@ -1,10 +1,42 @@
 <?php
 namespace Controllers;
 
+use Core\RateLimiter;
+use Core\Request;
 use Database;
 
 class AdminController
 {
+    private function currentPath(): string
+    {
+        $basePath = rtrim(parse_url(APP_URL, PHP_URL_PATH) ?? '', '/');
+        $requestPath = parse_url($_SERVER['REQUEST_URI'] ?? '/admin', PHP_URL_PATH) ?? '/admin';
+        $normalized = '/' . ltrim(str_replace($basePath, '', $requestPath), '/');
+
+        return rtrim($normalized, '/') ?: '/';
+    }
+
+    private function routeFilter(): string
+    {
+        return match ($this->currentPath()) {
+            '/admin/users/free' => 'free',
+            '/admin/users/basic' => 'basic',
+            '/admin/users/pro' => 'pro',
+            '/admin/users/professional' => 'professional',
+            default => trim($_GET['plan'] ?? ''),
+        };
+    }
+
+    private function listingPath(string $filter = ''): string
+    {
+        return match ($filter) {
+            'free' => APP_URL . '/admin/users/free',
+            'basic' => APP_URL . '/admin/users/basic',
+            'pro' => APP_URL . '/admin/users/pro',
+            'professional' => APP_URL . '/admin/users/professional',
+            default => APP_URL . '/admin/users',
+        };
+    }
 
     private function isAuthed(): bool
     {
@@ -34,6 +66,16 @@ class AdminController
 
         $db = Database::getInstance();
         $month = date('Y-m');
+        $currentPath = $this->currentPath();
+        $isDashboard = $currentPath === '/admin';
+        $sectionTitle = match ($currentPath) {
+            '/admin/users/free' => 'Free Users',
+            '/admin/users/basic' => 'Basic Users',
+            '/admin/users/pro' => 'Pro Users',
+            '/admin/users/professional' => 'Professional Users',
+            '/admin/users' => 'All Users',
+            default => 'Overview',
+        };
 
         // ── Stats ──────────────────────────────────────────────
         $stats = [];
@@ -86,9 +128,8 @@ class AdminController
         // ── User list — paginated ──────────────────────────────
         $page = max(1, (int) ($_GET['page'] ?? 1));
         $perPage = 20;
-        $offset = ($page - 1) * $perPage;
         $search = trim($_GET['q'] ?? '');
-        $filter = trim($_GET['plan'] ?? '');
+        $filter = $this->routeFilter();
 
         // Build WHERE cleanly — no mixing of named params
         $conditions = [];
@@ -109,7 +150,16 @@ class AdminController
         $st = $db->prepare("SELECT COUNT(*) FROM users $whereSQL");
         $st->execute($params);
         $totalUsers = (int) $st->fetchColumn();
-        $totalPages = (int) ceil($totalUsers / $perPage);
+        $totalPages = max(1, (int) ceil($totalUsers / $perPage));
+        $page = min($page, $totalPages);
+        $offset = ($page - 1) * $perPage;
+        $listingPath = $this->listingPath($filter);
+        $isFilteredRoute = in_array($this->currentPath(), [
+            '/admin/users/free',
+            '/admin/users/basic',
+            '/admin/users/pro',
+            '/admin/users/professional',
+        ], true);
 
         // Fetch page
         $st = $db->prepare("
@@ -175,13 +225,31 @@ class AdminController
     // ── POST /admin/login ─────────────────────────────────
     public function login(): void
     {
+        $ip = Request::ip();
+        if (RateLimiter::isBlocked($ip, 'admin_login_block')) {
+            $_SESSION['admin_error'] = 'This IP is blocked for 24 hours after 3 incorrect admin login attempts.';
+            header('Location: ' . APP_URL . '/admin');
+            exit;
+        }
+
         $password = $_POST['password'] ?? '';
         if (hash_equals(ADMIN_PASSWORD, $password)) {
+            RateLimiter::clear($ip, 'admin_login');
+            RateLimiter::clear($ip, 'admin_login_block');
             $_SESSION['admin_authed'] = true;
             header('Location: ' . APP_URL . '/admin');
             exit;
         }
-        $_SESSION['admin_error'] = 'Invalid password.';
+
+        RateLimiter::check($ip, 'admin_login');
+        $remaining = RateLimiter::remaining($ip, 'admin_login');
+
+        if ($remaining === 0) {
+            RateLimiter::block($ip, 'admin_login_block');
+            $_SESSION['admin_error'] = 'Too many incorrect admin login attempts. This IP is blocked for 24 hours.';
+        } else {
+            $_SESSION['admin_error'] = "Invalid password. {$remaining} attempts remaining before this IP is blocked for 24 hours.";
+        }
         header('Location: ' . APP_URL . '/admin');
         exit;
     }
@@ -230,7 +298,7 @@ class AdminController
 
         $db->prepare("
             INSERT INTO credit_ledger (user_id, credit_change, credit_balance, feature, note)
-            VALUES (:uid, :change, :balance, 'admin', :note)
+            VALUES (:uid, :change, :balance, 'topup', :note)
         ")->execute([
                     'uid' => $userId,
                     'change' => $amount,

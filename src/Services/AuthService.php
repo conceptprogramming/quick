@@ -25,10 +25,19 @@ class AuthService
         $email = strtolower(trim($email));
         $db    = Database::getInstance();
 
-        // Create user if not exists
-        $st = $db->prepare("SELECT id FROM users WHERE email = :email LIMIT 1");
+        // Check existing user status before issuing OTP
+        $st = $db->prepare("SELECT id, status FROM users WHERE email = :email LIMIT 1");
         $st->execute(['email' => $email]);
-        if (!$st->fetch()) {
+        $user = $st->fetch();
+
+        if ($user && ($user['status'] ?? 'active') === 'suspended') {
+            return [
+                'success' => false,
+                'message' => 'This account is suspended. Please contact support at support@quickchatpdf.com.',
+            ];
+        }
+
+        if (!$user) {
             $db->prepare("INSERT INTO users (email, plan, credits) VALUES (:email, 'free', :credits)")
                 ->execute(['email' => $email, 'credits' => PLANS['free']['monthly_credits']]);
         }
@@ -123,9 +132,20 @@ class AuthService
         $db->prepare("UPDATE otps SET used = 1 WHERE id = :id")
             ->execute(['id' => $row['id']]);
 
-        $st = $db->prepare("SELECT id FROM users WHERE email = :email LIMIT 1");
+        $st = $db->prepare("SELECT id, status FROM users WHERE email = :email LIMIT 1");
         $st->execute(['email' => $email]);
         $user = $st->fetch();
+
+        if (!$user) {
+            return ['success' => false, 'message' => 'Account not found. Please request a new login code.'];
+        }
+
+        if (($user['status'] ?? 'active') === 'suspended') {
+            return [
+                'success' => false,
+                'message' => 'This account is suspended. Please contact support at support@quickchatpdf.com.',
+            ];
+        }
 
         return ['success' => true, 'user_id' => $user['id']];
     }

@@ -14,11 +14,15 @@
     <meta name="keywords"
         content="<?= $seo['keywords'] ?? 'chat with pdf, pdf ai, pdf summary, pdf quiz generator, ai pdf tool' ?>" />
     <meta name="robots" content="index, follow" />
+    <meta name="theme-color" content="#6c47ff" />
     <link rel="canonical" href="<?= APP_URL . ($seo['canonical'] ?? '') ?>" />
+    <link rel="icon" type="image/svg+xml" href="<?= APP_URL ?>/public/favicon.svg" />
+    <link rel="shortcut icon" href="<?= APP_URL ?>/public/favicon.svg" />
 
     <!-- Open Graph -->
     <meta property="og:type" content="website" />
     <meta property="og:url" content="<?= APP_URL ?>" />
+    <meta property="og:site_name" content="QuickChatPDF" />
     <meta property="og:title" content="<?= $seo['title'] ?? 'QuickChatPDF' ?>" />
     <meta property="og:description"
         content="<?= $seo['description'] ?? 'AI-powered PDF chat, summaries, Q&A and quiz generator.' ?>" />

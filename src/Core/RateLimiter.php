@@ -136,4 +136,16 @@ class RateLimiter
 
         return max(0, $limits['max'] - ($row['hits'] ?? 0));
     }
+
+    public static function clear(string $identifier, string $action): void
+    {
+        $db = Database::getInstance();
+        $db->prepare("
+            DELETE FROM rate_limits
+            WHERE identifier = :id AND action = :action
+        ")->execute([
+            'id' => $identifier,
+            'action' => $action,
+        ]);
+    }
 }

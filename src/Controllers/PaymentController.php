@@ -252,6 +252,29 @@ class PaymentController
         }
     }
 
+    public function webhookInfo(): void
+    {
+        header('Content-Type: text/html; charset=UTF-8');
+        http_response_code(200);
+
+        echo '<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">';
+        echo '<title>PayPal Webhook Endpoint</title>';
+        echo '<style>
+            body{margin:0;font-family:Inter,system-ui,sans-serif;background:#f8fafc;color:#0f172a;display:flex;min-height:100vh;align-items:center;justify-content:center;padding:24px}
+            .card{max-width:720px;background:#fff;border:1px solid #e2e8f0;border-radius:24px;padding:32px;box-shadow:0 24px 60px rgba(15,23,42,.08)}
+            .pill{display:inline-flex;align-items:center;gap:8px;padding:8px 14px;border-radius:999px;background:#eef2ff;color:#4f46e5;font-weight:700;font-size:.82rem}
+            h1{margin:16px 0 10px;font-size:2rem;line-height:1.1}
+            p{margin:0 0 12px;color:#475569;line-height:1.6}
+            code{background:#f1f5f9;border-radius:8px;padding:2px 8px}
+        </style></head><body><div class="card">';
+        echo '<div class="pill">PayPal Webhook Endpoint</div>';
+        echo '<h1>This endpoint is available.</h1>';
+        echo '<p>Use <code>POST</code> requests from PayPal for live webhook delivery. Opening this URL in a browser with <code>GET</code> is only a manual health check.</p>';
+        echo '<p>Expected route: <code>/payment/webhook</code></p>';
+        echo '</div></body></html>';
+        exit;
+    }
+
     public function cancelSubscription(): void
     {
         header('Content-Type: application/json');

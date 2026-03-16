@@ -7,11 +7,21 @@ class Database
     private static function connect(): void
     {
         $host = $_ENV['DB_HOST'] ?? 'localhost';
+        $port = $_ENV['DB_PORT'] ?? null;
         $name = $_ENV['DB_NAME'] ?? 'quickchatpdf';
         $user = $_ENV['DB_USER'] ?? 'root';
         $pass = $_ENV['DB_PASS'] ?? '';
 
+        // In CLI, "localhost" may try a Unix socket that does not exist on XAMPP.
+        // Force TCP so cron and manual CLI scripts use the same DB reliably.
+        if (PHP_SAPI === 'cli' && $host === 'localhost') {
+            $host = '127.0.0.1';
+        }
+
         $dsn = "mysql:host={$host};dbname={$name};charset=utf8mb4";
+        if ($port !== null && $port !== '') {
+            $dsn .= ";port={$port}";
+        }
 
         self::$instance = new PDO($dsn, $user, $pass, [
             PDO::ATTR_ERRMODE            => PDO::ERRMODE_EXCEPTION,

@@ -32,6 +32,14 @@ class CSRFMiddleware
             && hash_equals($_SESSION['csrf_token'], $token);
     }
 
+    public static function verify(): void
+    {
+        $token = $_POST['_csrf'] ?? $_SERVER['HTTP_X_CSRF_TOKEN'] ?? '';
+        if (!self::validate($token)) {
+            Response::error('Invalid CSRF token.', 403);
+        }
+    }
+
     // HTML hidden input helper
     public static function field(): string
     {

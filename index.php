@@ -18,9 +18,18 @@ $routes = [
         '/summary' => ['Controllers\SummaryController', 'index'],
         '/quiz' => ['Controllers\QuizController', 'index'],
         '/pdf/test' => ['Controllers\PDFController', 'test'],
+        '/faq' => ['Controllers\PublicController', 'faq'],
+        '/terms' => ['Controllers\PublicController', 'terms'],
         '/plans' => ['Controllers\PlansController', 'index'],
         '/profile' => ['Controllers\ProfileController', 'index'],
+        '/privacy' => ['Controllers\PublicController', 'privacy'],
+        '/support' => ['Controllers\PublicController', 'support'],
         '/admin' => ['Controllers\AdminController', 'index'],
+        '/admin/users' => ['Controllers\AdminController', 'index'],
+        '/admin/users/free' => ['Controllers\AdminController', 'index'],
+        '/admin/users/basic' => ['Controllers\AdminController', 'index'],
+        '/admin/users/pro' => ['Controllers\AdminController', 'index'],
+        '/admin/users/professional' => ['Controllers\AdminController', 'index'],
         '/admin/user' => ['Controllers\AdminController', 'user'],
 
 
