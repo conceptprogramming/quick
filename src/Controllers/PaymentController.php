@@ -283,12 +283,19 @@ class PaymentController
                 SET status = 'cancelled',
                     cancelled_at = COALESCE(cancelled_at, UTC_TIMESTAMP()),
                     updated_at = UTC_TIMESTAMP()
-                WHERE paypal_sub_id = :sub
-            ")->execute(['sub' => $subId]);
+                WHERE user_id = :uid
+                  AND (
+                        paypal_sub_id = :sub
+                        OR status = 'active'
+                      )
+            ")->execute([
+                'uid' => $userId,
+                'sub' => $subId,
+            ]);
 
             $this->respond([
                 'success' => true,
-                'message' => 'Subscription cancelled. Your current plan stays active until the end of the paid period.',
+                'message' => 'Subscription cancelled. Your current plan stays active until the end date of the paid period.',
             ]);
         } catch (\Throwable $e) {
             error_log('[Subscription Cancel] ' . $e->getMessage());

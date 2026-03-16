@@ -8,12 +8,13 @@ $creditBalance = $userCredits;
 $joinedDate = date('M d, Y', strtotime($user['created_at']));
 $monthLabel = date('F Y');
 $subscriptionStatus = $subscription['status'] ?? null;
+$subscriptionCancelled = ($subscriptionStatus === 'cancelled') || !empty($subscription['cancelled_at']);
 $subscriptionRenewsAt = $subscription['renews_at'] ?? null;
 $canCancelSubscription = $userPlanKey !== 'free'
     && !empty($user['paypal_subscription_id'])
-    && $subscriptionStatus !== 'cancelled';
-$subscriptionLabel = $subscriptionStatus === 'cancelled'
-    ? 'Renewal cancelled'
+    && !$subscriptionCancelled;
+$subscriptionLabel = $subscriptionCancelled
+    ? 'Subscription cancelled'
     : ($userPlanKey !== 'free' ? 'Subscription active' : 'No paid subscription');
 ?>
 
@@ -128,9 +129,9 @@ $subscriptionLabel = $subscriptionStatus === 'cancelled'
                                     : 'Free forever' ?>
                             </div>
                             <?php if ($userPlanKey !== 'free'): ?>
-                                <div class="small mt-2 <?= $subscriptionStatus === 'cancelled' ? 'text-warning' : 'text-success' ?>">
-                                    <?= $subscriptionStatus === 'cancelled'
-                                        ? 'Renewal cancelled. Access stays active until ' . ($subscriptionRenewsAt ? date('M j, Y', strtotime($subscriptionRenewsAt)) : 'period end')
+                                <div class="small mt-2 <?= $subscriptionCancelled ? 'text-warning' : 'text-success' ?>">
+                                    <?= $subscriptionCancelled
+                                        ? 'Subscription cancelled. Current plan stays active until ' . ($subscriptionRenewsAt ? date('M j, Y', strtotime($subscriptionRenewsAt)) : 'period end')
                                         : 'Subscription active' ?>
                                 </div>
                             <?php endif; ?>
@@ -225,7 +226,7 @@ $subscriptionLabel = $subscriptionStatus === 'cancelled'
                         <div class="qcp-info-row">
                             <span class="qcp-info-label">Subscription Status</span>
                             <span class="qcp-info-value">
-                                <span class="badge <?= $subscriptionStatus === 'cancelled' ? 'bg-warning text-dark' : 'bg-success' ?> px-2">
+                                <span class="badge <?= $subscriptionCancelled ? 'bg-warning text-dark' : 'bg-success' ?> px-2">
                                     <?= htmlspecialchars($subscriptionLabel) ?>
                                 </span>
                             </span>

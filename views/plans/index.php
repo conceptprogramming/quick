@@ -7,10 +7,11 @@ $userCredits = (int) ($user['credits'] ?? 0);
 $creditBalance = $userCredits;
 $paypalBrandName = APP_NAME;
 $subscriptionStatus = $subscription['status'] ?? null;
+$subscriptionCancelled = ($subscriptionStatus === 'cancelled') || !empty($subscription['cancelled_at']);
 $subscriptionRenewsAt = $subscription['renews_at'] ?? null;
 $canCancelSubscription = $userPlanKey !== 'free'
     && !empty($user['paypal_subscription_id'])
-    && $subscriptionStatus !== 'cancelled';
+    && !$subscriptionCancelled;
 ?>
 
 <!-- Navbar -->
@@ -69,17 +70,17 @@ $canCancelSubscription = $userPlanKey !== 'free'
             <?php if ($userPlanKey !== 'free'): ?>
                 <div class="ms-auto">
                     <div class="d-flex flex-column align-items-end gap-2">
-                        <span class="badge <?= $subscriptionStatus === 'cancelled' ? 'bg-warning text-dark' : 'bg-success' ?> px-3 py-2">
-                            <i class="bi <?= $subscriptionStatus === 'cancelled' ? 'bi-pause-circle-fill' : 'bi-check-circle-fill' ?> me-1"></i>
-                            <?= $subscriptionStatus === 'cancelled' ? 'Cancelled Renewal' : 'Active Subscription' ?>
+                        <span class="badge <?= $subscriptionCancelled ? 'bg-warning text-dark' : 'bg-success' ?> px-3 py-2">
+                            <i class="bi <?= $subscriptionCancelled ? 'bi-pause-circle-fill' : 'bi-check-circle-fill' ?> me-1"></i>
+                            <?= $subscriptionCancelled ? 'Subscription Cancelled' : 'Active Subscription' ?>
                         </span>
                         <?php if ($canCancelSubscription): ?>
                             <button class="btn btn-outline-danger btn-sm" id="cancelSubscriptionBtn">
                                 <i class="bi bi-x-circle me-1"></i>Cancel Subscription
                             </button>
-                        <?php elseif ($subscriptionStatus === 'cancelled'): ?>
+                        <?php elseif ($subscriptionCancelled): ?>
                             <div class="text-muted small">
-                                Active until
+                                Current plan active until
                                 <?= $subscriptionRenewsAt ? htmlspecialchars(date('M j, Y', strtotime($subscriptionRenewsAt))) : 'period end' ?>
                             </div>
                         <?php endif; ?>

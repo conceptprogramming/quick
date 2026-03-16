@@ -54,15 +54,16 @@ class PlansController
             FROM subscriptions
             WHERE user_id = :uid
               AND (
-                    paypal_sub_id = :paypal_sub_id
-                    OR :paypal_sub_id = ''
+                    paypal_sub_id = :paypal_sub_id_match
+                    OR :paypal_sub_id_empty = ''
                   )
             ORDER BY updated_at DESC, id DESC
             LIMIT 1
         ");
         $st->execute([
             'uid' => $userId,
-            'paypal_sub_id' => (string) ($user['paypal_subscription_id'] ?? ''),
+            'paypal_sub_id_match' => (string) ($user['paypal_subscription_id'] ?? ''),
+            'paypal_sub_id_empty' => (string) ($user['paypal_subscription_id'] ?? ''),
         ]);
         $subscription = $st->fetch() ?: null;
 
