@@ -68,7 +68,7 @@ class MailService
                 'Pack' => $packName,
                 'Amount' => strtoupper($currency) . ' ' . number_format($amount, 2),
                 'Added' => $unitsLabel,
-                'Expiry' => str_contains(strtolower($unitsLabel), 'credits') ? 'Does not expire' : 'Applies to the current month',
+                'Expiry' => str_contains(strtolower($unitsLabel), 'credits') ? 'Does not expire' : 'Valid for the current month',
             ],
             'Open QuickChatPDF to start using your purchase right away.'
         );
@@ -145,6 +145,8 @@ class MailService
     // ── OTP Email Template ────────────────────────────────────
     private function otpTemplate(string $otp): string
     {
+        $year = date('Y');
+
         return <<<HTML
         <!DOCTYPE html>
         <html>
@@ -152,53 +154,60 @@ class MailService
             <meta charset="UTF-8">
             <meta name="viewport" content="width=device-width,initial-scale=1">
         </head>
-        <body style="margin:0;padding:0;background:#0a0d14;font-family:'Inter',Arial,sans-serif;">
-            <table width="100%" cellpadding="0" cellspacing="0" style="background:#0a0d14;padding:40px 20px;">
+        <body style="margin:0;padding:0;background:#f3f6fb;font-family:'Inter',Arial,sans-serif;">
+            <table width="100%" cellpadding="0" cellspacing="0" style="background:#f3f6fb;padding:40px 20px;">
                 <tr><td align="center">
                     <table width="560" cellpadding="0" cellspacing="0"
-                        style="background:#131929;border-radius:16px;border:1px solid rgba(255,255,255,0.07);overflow:hidden;max-width:560px;width:100%;">
+                        style="background:#ffffff;border-radius:24px;border:1px solid #e2e8f0;overflow:hidden;max-width:560px;width:100%;box-shadow:0 20px 60px rgba(15,23,42,.08);">
 
                         <!-- Header -->
                         <tr>
-                            <td style="background:linear-gradient(135deg,#7c5cfc,#c471ed);padding:32px;text-align:center;">
+                            <td style="background:linear-gradient(135deg,#6c47ff,#b05cff);padding:32px;text-align:center;">
                                 <div style="font-size:22px;font-weight:800;color:#fff;letter-spacing:-0.5px;">
-                                    ⚡ QuickChatPDF
+                                    QuickChatPDF
                                 </div>
                             </td>
                         </tr>
 
                         <!-- Body -->
                         <tr>
-                            <td style="padding:40px 36px;">
-                                <h2 style="color:#f1f5f9;font-size:20px;margin:0 0 10px;">Your Login Code</h2>
-                                <p style="color:#64748b;font-size:14px;margin:0 0 30px;line-height:1.6;">
-                                    Use the code below to log in to your QuickChatPDF account.
-                                    This code expires in <strong style="color:#a78bfa;">10 minutes</strong>.
+                            <td style="padding:40px 36px 28px;">
+                                <div style="display:inline-block;padding:8px 14px;border-radius:999px;background:#eef2ff;color:#6c47ff;font-size:12px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;margin-bottom:16px;">Secure Login</div>
+                                <h2 style="color:#0f172a;font-size:20px;margin:0 0 10px;">Your QuickChatPDF login code</h2>
+                                <p style="color:#475569;font-size:14px;margin:0 0 28px;line-height:1.7;">
+                                    Use this one-time code to sign in. It stays valid for <strong style="color:#6c47ff;">10 minutes</strong>.
                                 </p>
 
                                 <!-- OTP Box -->
-                                <div style="background:#0a0d14;border:2px solid #7c5cfc;border-radius:12px;
-                                            text-align:center;padding:24px;margin-bottom:30px;">
+                                <div style="background:#f8fafc;border:2px solid #c4b5fd;border-radius:18px;
+                                            text-align:center;padding:24px;margin-bottom:28px;">
                                     <div style="font-size:42px;font-weight:800;letter-spacing:12px;
-                                                color:#fff;font-family:monospace;">
+                                                color:#0f172a;font-family:monospace;">
                                         {$otp}
                                     </div>
                                 </div>
 
-                                <p style="color:#64748b;font-size:13px;margin:0;line-height:1.6;">
-                                    If you didn't request this code, you can safely ignore this email.
-                                    Your account is secure.
+                                <table width="100%" cellpadding="0" cellspacing="0" style="border-top:1px solid #e2e8f0;">
+                                    <tr>
+                                        <td style="padding:16px 0;color:#64748b;font-size:14px;border-bottom:1px solid #e2e8f0;">Purpose</td>
+                                        <td style="padding:16px 0;color:#0f172a;font-size:14px;font-weight:700;text-align:right;border-bottom:1px solid #e2e8f0;">Passwordless sign-in</td>
+                                    </tr>
+                                    <tr>
+                                        <td style="padding:16px 0;color:#64748b;font-size:14px;border-bottom:1px solid #e2e8f0;">Expires</td>
+                                        <td style="padding:16px 0;color:#0f172a;font-size:14px;font-weight:700;text-align:right;border-bottom:1px solid #e2e8f0;">In 10 minutes</td>
+                                    </tr>
+                                </table>
+
+                                <p style="color:#475569;font-size:13px;margin:24px 0 0;line-height:1.7;">
+                                    If you did not request this code, you can safely ignore this email. Your account stays protected.
                                 </p>
                             </td>
                         </tr>
 
                         <!-- Footer -->
                         <tr>
-                            <td style="padding:20px 36px;border-top:1px solid rgba(255,255,255,0.07);text-align:center;">
-                                <p style="color:#334155;font-size:12px;margin:0;">
-                                    &copy; <?= date('Y') ?> QuickChatPDF &nbsp;·&nbsp;
-                                    <span style="color:#475569;">Private by design. Zero document retention.</span>
-                                </p>
+                            <td style="padding:20px 36px;border-top:1px solid #e2e8f0;text-align:center;background:#f8fafc;">
+                                <p style="color:#64748b;font-size:12px;margin:0;">&copy; {$year} QuickChatPDF · support@quickchatpdf.com</p>
                             </td>
                         </tr>
 
